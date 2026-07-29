@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8" />
+<title>QR POS - ตั้งค่าโต๊ะ</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<style>
+  body { font-family: 'Segoe UI', sans-serif; background:#f4f6f8; margin:0; padding:24px; }
+  h1 { color:#2d3436; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(180px,1fr)); gap:16px; margin-top:20px; }
+  .card { background:#fff; border-radius:10px; padding:16px; text-align:center; box-shadow:0 2px 6px rgba(0,0,0,0.08); }
+  .card img { width:140px; height:140px; }
+  .card h3 { margin:8px 0 4px; color:#2d3436; }
+  .card a { display:inline-block; margin-top:8px; font-size:13px; color:#0984e3; text-decoration:none; }
+  nav a { margin-right:16px; color:#0984e3; text-decoration:none; font-weight:600; }
+</style>
+</head>
+<body>
+  <nav>
+    <a href="/index.html">ตั้งค่าโต๊ะ (QR)</a>
+    <a href="/kitchen.html">หน้าครัว / ดูออเดอร์</a>
+  </nav>
+  <h1>QR Code ประจำร้าน</h1>
+  <p> Scan QR code  ลูกค้าสแกนแล้วสั่งอาหารได้ทันที</p>
+  <div class="grid" id="tableGrid"></div>
+
+  <script>
+    async function loadTables() {
+      const tables = await fetch('/api/tables').then(r => r.json());
+      const grid = document.getElementById('tableGrid');
+
+      for (const table of tables) {
+        const res = await fetch(`/api/qr/${table}`).then(r => r.json());
+        const card = document.createElement('div');
+        card.className = 'card';
+        card.innerHTML = `
+          <h3>โต๊ะ ${table}</h3>
+          <img src="${res.qr}" alt="QR โต๊ะ ${table}" />
+          <a href="${res.url}" target="_blank">เปิดหน้าสั่งอาหาร</a>
+        `;
+        grid.appendChild(card);
+      }
+    }
+    loadTables();
+  </script>
+</body>
+</html>

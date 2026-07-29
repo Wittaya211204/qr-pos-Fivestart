@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8" />
+<title>หน้าครัว - ออเดอร์</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<style>
+  body { font-family:'Segoe UI', sans-serif; background:#f4f6f8; margin:0; padding:24px; }
+  h1 { color:#2d3436; }
+  nav a { margin-right:16px; color:#0984e3; text-decoration:none; font-weight:600; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(260px,1fr)); gap:16px; margin-top:20px; }
+  .order-card { background:#fff; border-radius:10px; padding:16px; box-shadow:0 2px 6px rgba(0,0,0,0.08); border-left:6px solid #dfe6e9; }
+  .order-card.pending { border-left-color:#e17055; }
+  .order-card.cooking { border-left-color:#fdcb6e; }
+  .order-card.served { border-left-color:#00b894; opacity:0.6; }
+  .order-card h3 { margin:0 0 6px; }
+  .order-card ul { padding-left:18px; margin:8px 0; }
+  .status-row { display:flex; gap:8px; margin-top:10px; }
+  .status-row button { flex:1; padding:6px; border:none; border-radius:6px; cursor:pointer; font-size:13px; }
+  .btn-pending { background:#e17055; color:#fff; }
+  .btn-cooking { background:#fdcb6e; color:#2d3436; }
+  .btn-served { background:#00b894; color:#fff; }
+  .time { color:#b2bec3; font-size:12px; }
+</style>
+</head>
+<body>
+  <nav>
+    <a href="/index.html">ตั้งค่าโต๊ะ (QR)</a>
+    <a href="/kitchen.html">หน้าครัว / ดูออเดอร์</a>
+  </nav>
+  <h1>ออเดอร์ทั้งหมด</h1>
+  <div class="grid" id="orderGrid"></div>
+
+<script>
+  async function loadOrders() {
+    const orders = await fetch('/api/orders').then(r => r.json());
+    const grid = document.getElementById('orderGrid');
+    grid.innerHTML = '';
+
+    orders.forEach(order => {
+      const card = document.createElement('div');
+      card.className = `order-card ${order.status}`;
+      const itemsHtml = order.items.map(it => `<li>${it.name} x${it.qty}</li>`).join('');
+      const time = new Date(order.createdAt).toLocaleTimeString('th-TH');
+
+      card.innerHTML = `
+        <h3>โต๊ะ ${order.table} — ออเดอร์ #${order.id}</h3>
+        <div class="time">${time}</div>
+        <ul>${itemsHtml}</ul>
+        <div class="status-row">
+          <button class="btn-pending" data-id="${order.id}" data-status="pending">รอทำ</button>
+          <button class="btn-cooking" data-id="${order.id}" data-status="cooking">กำลังทำ</button>
+          <button class="btn-served" data-id="${order.id}" data-status="served">เสิร์ฟแล้ว</button>
+        </div>
+      `;
+      grid.appendChild(card);
+    });
+
+    grid.querySelectorAll('button[data-status]').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        await fetch(`/api/orders/${btn.dataset.id}/status`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status: btn.dataset.status }),
+        });
+        loadOrders();
+      });
+    });
+  }
+
+  loadOrders();
+  setInterval(loadOrders, 4000); // รีเฟรชอัตโนมัติทุก 4 วินาที
+</script>
+</body>
+</html>

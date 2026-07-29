@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8" />
+<title>สั่งอาหาร</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<style>
+  body { font-family:'Segoe UI', sans-serif; background:#f9f9f9; margin:0; padding:16px; padding-bottom:100px; }
+  h1 { color:#2d3436; font-size:22px; }
+  .table-badge { display:inline-block; background:#0984e3; color:#fff; padding:4px 12px; border-radius:20px; font-size:14px; margin-bottom:16px; }
+  .category { font-weight:700; margin:20px 0 8px; color:#636e72; text-transform:uppercase; font-size:13px; }
+  .item { background:#fff; border-radius:10px; padding:12px 16px; margin-bottom:10px; display:flex; justify-content:space-between; align-items:center; box-shadow:0 1px 4px rgba(0,0,0,0.06); }
+  .item-info h3 { margin:0; font-size:16px; color:#2d3436; }
+  .item-info span { color:#e17055; font-weight:600; }
+  .qty-control { display:flex; align-items:center; gap:8px; }
+  .qty-control button { width:30px; height:30px; border:none; border-radius:6px; background:#dfe6e9; font-size:16px; cursor:pointer; }
+  .qty-control span { min-width:20px; text-align:center; }
+  .cart-bar { position:fixed; bottom:0; left:0; right:0; background:#2d3436; color:#fff; padding:14px 20px; display:flex; justify-content:space-between; align-items:center; }
+  .cart-bar button { background:#00b894; color:#fff; border:none; padding:10px 20px; border-radius:8px; font-size:15px; cursor:pointer; }
+  .toast { position:fixed; top:16px; left:50%; transform:translateX(-50%); background:#00b894; color:#fff; padding:10px 20px; border-radius:8px; display:none; }
+</style>
+</head>
+<body>
+  <div id="toast" class="toast"></div>
+  <span class="table-badge" id="tableBadge">โต๊ะ -</span>
+  <h1>เลือกเมนูอาหาร</h1>
+  <div id="menuList"></div>
+
+  <div class="cart-bar">
+    <span>รวม: <strong id="cartTotal">0</strong> บาท</span>
+    <button id="submitBtn">สั่งอาหาร</button>
+  </div>
+
+<script>
+  const params = new URLSearchParams(location.search);
+  const table = params.get('table') || '1';
+  document.getElementById('tableBadge').textContent = `โต๊ะ ${table}`;
+
+  let cart = {}; // menuId -> qty
+  let menu = [];
+
+  function toast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.style.display = 'block';
+    setTimeout(() => t.style.display = 'none', 2000);
+  }
+
+  function updateTotal() {
+    let total = 0;
+    for (const id in cart) {
+      const item = menu.find(m => m.id === Number(id));
+      total += item.price * cart[id];
+    }
+    document.getElementById('cartTotal').textContent = total;
+  }
+
+  function changeQty(id, delta) {
+    cart[id] = Math.max(0, (cart[id] || 0) + delta);
+    document.getElementById(`qty-${id}`).textContent = cart[id];
+    updateTotal();
+  }
+
+  async function loadMenu() {
+    menu = await fetch('/api/menu').then(r => r.json());
+    const categories = [...new Set(menu.map(m => m.category))];
+    const container = document.getElementById('menuList');
+
+    for (const cat of categories) {
+      const catEl = document.createElement('div');
+      catEl.className = 'category';
+      catEl.textContent = cat;
+      container.appendChild(catEl);
+
+      menu.filter(m => m.category === cat).forEach(item => {
+        const el = document.createElement('div');
+        el.className = 'item';
+        el.innerHTML = `
+          <div class="item-info">
+            <h3>${item.name}</h3>
+            <span>${item.price} บาท</span>
+          </div>
+          <div class="qty-control">
+            <button data-id="${item.id}" data-delta="-1">-</button>
+            <span id="qty-${item.id}">0</span>
+            <button data-id="${item.id}" data-delta="1">+</button>
+          </div>
+        `;
+        container.appendChild(el);
+      });
+    }
+
+    container.querySelectorAll('button[data-id]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        changeQty(Number(btn.dataset.id), Number(btn.dataset.delta));
+      });
+    });
+
+    document.getElementById('submitBtn').onclick = async () => {
+      const items = Object.entries(cart)
+        .filter(([, qty]) => qty > 0)
+        .map(([menuId, qty]) => ({ menuId: Number(menuId), qty }));
+
+      if (items.length === 0) {
+        toast('กรุณาเลือกเมนูก่อน');
+        return;
+      }
+
+      const res = await fetch('/api/orders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ table, items }),
+      });
+
+      if (res.ok) {
+        toast('สั่งอาหารสำเร็จ! รอครัวเตรียมอาหารนะครับ');
+        cart = {};
+        menu.forEach(m => {
+          const qEl = document.getElementById(`qty-${m.id}`);
+          if (qEl) qEl.textContent = '0';
+        });
+        updateTotal();
+      } else {
+        toast('เกิดข้อผิดพลาด กรุณาลองใหม่');
+      }
+    };
+  }
+
+  loadMenu();
+</script>
+</body>
+</html>
