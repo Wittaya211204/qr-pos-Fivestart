@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8" />
+<title>QR POS - แผงควบคุมร้าน</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: 'Segoe UI', sans-serif; background:#f4f6f8; margin:0; padding:0; -webkit-user-select:none; user-select:none; }
+
+  /* ---------- แท็บด้านบน ---------- */
+  .tabbar {
+    display:flex; background:#fff; box-shadow:0 2px 6px rgba(0,0,0,0.08);
+    position:sticky; top:0; z-index:100;
+  }
+  .tabbar button {
+    flex:1; padding:16px 8px; border:none; background:none; cursor:pointer;
+    font-size:15px; font-weight:600; color:#636e72; border-bottom:3px solid transparent;
+    position:relative; display:flex; align-items:center; justify-content:center; gap:8px;
+  }
+  .tabbar button.active { color:#0984e3; border-bottom-color:#0984e3; }
+  .tabbar button:hover { background:#f4f6f8; }
+  .badge {
+    background:#e17055; color:#fff; font-size:12px; font-weight:700;
+    border-radius:999px; min-width:20px; height:20px; display:flex;
+    align-items:center; justify-content:center; padding:0 6px;
+  }
+
+  .tab-content { display:none; padding:24px; }
+  .tab-content.active { display:block; }
+
+  h1 { color:#2d3436; margin:0 0 12px; font-size:22px; }
+
+  /* ==================== แท็บตั้งค่าโต๊ะ (QR) ==================== */
+  #tab-tables .grid {
+    display:grid; grid-template-columns:repeat(auto-fill, minmax(180px,1fr));
+    gap:16px; margin-top:20px;
+  }
+  #tab-tables .card {
+    background:#fff; border-radius:10px; padding:16px; text-align:center;
+    box-shadow:0 2px 6px rgba(0,0,0,0.08);
+  }
+  #tab-tables .card img { width:140px; height:140px; }
+  #tab-tables .card h3 { margin:8px 0 4px; color:#2d3436; }
+  #tab-tables .card a { display:inline-block; margin-top:8px; font-size:13px; color:#0984e3; text-decoration:none; }
+
+  /* ==================== แท็บสั่งอาหารแทนลูกค้า ==================== */
+  #tab-order .layout { display:flex; gap:16px; align-items:flex-start; }
+  #tab-order .menu-panel { flex:2; min-width:0; }
+  #tab-order .cart-panel {
+    flex:1; min-width:280px; background:#fff; border-radius:10px;
+    box-shadow:0 2px 6px rgba(0,0,0,0.08); padding:16px; position:sticky; top:76px;
+  }
+  #tab-order .table-select {
+    background:#fff; border-radius:10px; padding:14px 16px; margin-bottom:16px;
+    box-shadow:0 2px 6px rgba(0,0,0,0.08); display:flex; align-items:center; gap:12px;
+  }
+  #tab-order .table-select label { font-weight:600; color:#2d3436; }
+  #tab-order .table-select select { padding:8px 12px; border-radius:6px; border:1px solid #ccc; font-size:15px; }
+  #tab-order .search-box { width:100%; padding:10px 14px; border-radius:8px; border:1px solid #ccc; font-size:15px; margin-bottom:12px; }
+  #tab-order .category-block { margin-bottom:18px; }
+  #tab-order .category-title { font-weight:700; color:#d63031; margin-bottom:8px; font-size:15px; border-bottom:2px solid #d63031; padding-bottom:4px; display:inline-block; }
+  #tab-order .item-row {
+    display:flex; justify-content:space-between; align-items:center;
+    background:#fff; border-radius:8px; padding:10px 14px; margin-bottom:8px;
+    box-shadow:0 1px 4px rgba(0,0,0,0.06); cursor:pointer; transition:background 0.15s;
+  }
+  #tab-order .item-row:hover { background:#eef7ff; }
+  #tab-order .item-name { font-size:14px; color:#2d3436; }
+  #tab-order .item-price { font-size:13px; color:#0984e3; font-weight:600; white-space:nowrap; margin-left:8px; }
+  #tab-order .cart-title { font-size:17px; font-weight:700; color:#2d3436; margin-bottom:10px; }
+  #tab-order .cart-empty { color:#999; font-size:14px; padding:12px 0; }
+  #tab-order .cart-item { display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px solid #f0f0f0; font-size:14px; }
+  #tab-order .cart-item .name { flex:1; color:#2d3436; }
+  #tab-order .qty-controls { display:flex; align-items:center; gap:6px; margin:0 8px; }
+  #tab-order .qty-controls button { width:24px; height:24px; border:none; border-radius:5px; background:#dfe6e9; font-size:15px; cursor:pointer; line-height:1; }
+  #tab-order .qty-controls span { min-width:18px; text-align:center; font-weight:600; }
+  #tab-order .remove-btn { color:#d63031; background:none; border:none; cursor:pointer; font-size:13px; }
+  #tab-order .cart-total { display:flex; justify-content:space-between; font-weight:700; font-size:16px; color:#2d3436; margin:12px 0; }
+  #tab-order .submit-btn { width:100%; padding:12px; border:none; border-radius:8px; background:#00b894; color:#fff; font-size:16px; font-weight:700; cursor:pointer; }
+  #tab-order .submit-btn:disabled { background:#b2bec3; cursor:not-allowed; }
+  #tab-order .submit-btn:hover:not(:disabled) { background:#00a884; }
+
+  /* ==================== แท็บหน้าครัว ==================== */
+  #tab-kitchen h1 { display:flex; align-items:center; gap:10px; }
+  .conn-dot { width:10px; height:10px; border-radius:50%; background:#00b894; display:inline-block; }
+  .conn-dot.offline { background:#e17055; }
+  #tab-kitchen .grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(260px,1fr)); gap:16px; margin-top:20px; }
+  #tab-kitchen .order-card { background:#fff; border-radius:10px; padding:16px; box-shadow:0 2px 6px rgba(0,0,0,0.08); border-left:6px solid #dfe6e9; transition:opacity 0.3s; }
+  #tab-kitchen .order-card.pending { border-left-color:#e17055; }
+  #tab-kitchen .order-card.cooking { border-left-color:#fdcb6e; }
+  #tab-kitchen .order-card.served { border-left-color:#00b894; opacity:0.55; }
+  #tab-kitchen .order-card.new-order { animation: flash 1s ease-in-out 2; }
+  @keyframes flash { 0%,100% { box-shadow:0 2px 6px rgba(0,0,0,0.08); } 50% { box-shadow:0 0 0 4px rgba(225,112,85,0.5); } }
+  #tab-kitchen .order-card h3 { margin:0 0 6px; }
+  #tab-kitchen .order-card ul { padding-left:18px; margin:8px 0; }
+  #tab-kitchen .status-row { display:flex; gap:8px; margin-top:10px; }
+  #tab-kitchen .status-row button { flex:1; padding:10px 6px; border:none; border-radius:6px; cursor:pointer; font-size:13px; }
+  #tab-kitchen .btn-pending { background:#e17055; color:#fff; }
+  #tab-kitchen .btn-cooking { background:#fdcb6e; color:#2d3436; }
+  #tab-kitchen .btn-served { background:#00b894; color:#fff; }
+  #tab-kitchen .status-row button.active { outline:3px solid #2d3436; }
+  #tab-kitchen .time { color:#b2bec3; font-size:12px; }
+  #tab-kitchen .empty { color:#b2bec3; margin-top:40px; text-align:center; font-size:16px; }
+
+  .toast {
+    position:fixed; bottom:24px; left:50%; transform:translateX(-50%);
+    background:#2d3436; color:#fff; padding:12px 20px; border-radius:8px;
+    font-size:14px; opacity:0; pointer-events:none; transition:opacity 0.3s; z-index:200;
+  }
+  .toast.show { opacity:1; }
+</style>
+</head>
+<body>
+
+  <div class="tabbar">
+    <button class="tab-btn active" data-tab="tab-tables">ตั้งค่าโต๊ะ (QR)</button>
+    <button class="tab-btn" data-tab="tab-order">สั่งอาหารแทนลูกค้า</button>
+    <button class="tab-btn" data-tab="tab-kitchen">
+      หน้าครัว / ดูออเดอร์
+      <span class="badge" id="pendingBadge" style="display:none;">0</span>
+    </button>
+  </div>
+
+  <!-- ================= แท็บ 1: ตั้งค่าโต๊ะ (QR) ================= -->
+  <div class="tab-content active" id="tab-tables">
+    <h1>QR Code ประจำร้าน</h1>
+    <p>Scan QR code ลูกค้าสแกนแล้วสั่งอาหารได้ทันที</p>
+    <div class="grid" id="tableGrid"></div>
+  </div>
+
+  <!-- ================= แท็บ 2: สั่งอาหารแทนลูกค้า ================= -->
+  <div class="tab-content" id="tab-order">
+    <h1>สั่งอาหารแทนลูกค้า</h1>
+    <div class="table-select">
+      <label for="tableSelect">โต๊ะที่ :</label>
+      <select id="tableSelect"></select>
+    </div>
+    <div class="layout">
+      <div class="menu-panel">
+        <input type="text" class="search-box" id="searchBox" placeholder="ค้นหาเมนู..." />
+        <div id="menuContainer"></div>
+      </div>
+      <div class="cart-panel">
+        <div class="cart-title">รายการที่เลือก</div>
+        <div id="cartList"><div class="cart-empty">ยังไม่ได้เลือกเมนู</div></div>
+        <div class="cart-total"><span>รวมทั้งหมด</span><span id="cartTotal">0 บาท</span></div>
+        <button class="submit-btn" id="submitBtn" disabled>ยืนยันสั่งอาหาร</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= แท็บ 3: หน้าครัว ================= -->
+  <div class="tab-content" id="tab-kitchen">
+    <h1><span class="conn-dot" id="connDot"></span> ออเดอร์ทั้งหมด</h1>
+    <div class="grid" id="orderGrid"></div>
+    <div class="empty" id="emptyMsg" style="display:none;">ยังไม่มีออเดอร์เข้ามา</div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+<script>
+  /* ==================================================================
+     สลับแท็บ (ไม่โหลดหน้าใหม่)
+  ================================================================== */
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById(btn.dataset.tab).classList.add('active');
+    });
+  });
+
+  function showToast(msg) {
+    const toast = document.getElementById('toast');
+    toast.textContent = msg;
+    toast.classList.add('show');
+    setTimeout(() => toast.classList.remove('show'), 2200);
+  }
+
+  const TABLE_COUNT = 10;
+
+  /* ==================================================================
+     แท็บ 1: ตั้งค่าโต๊ะ (QR)
+  ================================================================== */
+  async function loadTables() {
+    const tables = await fetch('/api/tables').then(r => r.json());
+    const grid = document.getElementById('tableGrid');
+    grid.innerHTML = '';
+
+    for (const table of tables) {
+      const res = await fetch(`/api/qr/${table}`).then(r => r.json());
+      const card = document.createElement('div');
+      card.className = 'card';
+      card.innerHTML = `
+        <h3>โต๊ะ ${table}</h3>
+        <img src="${res.qr}" alt="QR โต๊ะ ${table}" />
+        <a href="${res.url}" target="_blank">เปิดหน้าสั่งอาหาร</a>
+      `;
+      grid.appendChild(card);
+    }
+  }
+
+  /* ==================================================================
+     แท็บ 2: สั่งอาหารแทนลูกค้า
+  ================================================================== */
+  let menu = [];
+  let cart = {};
+
+  const tableSelect = document.getElementById('tableSelect');
+  const menuContainer = document.getElementById('menuContainer');
+  const cartList = document.getElementById('cartList');
+  const cartTotal = document.getElementById('cartTotal');
+  const submitBtn = document.getElementById('submitBtn');
+  const searchBox = document.getElementById('searchBox');
+
+  function initTableSelect() {
+    for (let i = 1; i <= TABLE_COUNT; i++) {
+      const opt = document.createElement('option');
+      opt.value = i;
+      opt.textContent = `โต๊ะ ${i}`;
+      tableSelect.appendChild(opt);
+    }
+  }
+
+  async function loadMenu() {
+    menu = await fetch('/api/menu').then(r => r.json());
+    renderMenu(menu);
+  }
+
+  function renderMenu(items) {
+    const categories = {};
+    for (const it of items) {
+      if (!categories[it.category]) categories[it.category] = [];
+      categories[it.category].push(it);
+    }
+    menuContainer.innerHTML = '';
+    for (const cat in categories) {
+      const block = document.createElement('div');
+      block.className = 'category-block';
+      block.innerHTML = `<div class="category-title">${cat}</div>`;
+      for (const item of categories[cat]) {
+        const row = document.createElement('div');
+        row.className = 'item-row';
+        row.innerHTML = `<span class="item-name">${item.name}</span><span class="item-price">${item.price} บาท</span>`;
+        row.addEventListener('click', () => addToCart(item));
+        block.appendChild(row);
+      }
+      menuContainer.appendChild(block);
+    }
+  }
+
+  function addToCart(item) {
+    if (!cart[item.id]) cart[item.id] = { item, qty: 0 };
+    cart[item.id].qty += 1;
+    renderCart();
+  }
+  function changeQty(id, delta) {
+    if (!cart[id]) return;
+    cart[id].qty += delta;
+    if (cart[id].qty <= 0) delete cart[id];
+    renderCart();
+  }
+  function removeItem(id) { delete cart[id]; renderCart(); }
+
+  function renderCart() {
+    const ids = Object.keys(cart);
+    if (ids.length === 0) {
+      cartList.innerHTML = '<div class="cart-empty">ยังไม่ได้เลือกเมนู</div>';
+      submitBtn.disabled = true;
+      cartTotal.textContent = '0 บาท';
+      return;
+    }
+    let total = 0;
+    cartList.innerHTML = '';
+    for (const id of ids) {
+      const { item, qty } = cart[id];
+      total += item.price * qty;
+      const row = document.createElement('div');
+      row.className = 'cart-item';
+      row.innerHTML = `
+        <span class="name">${item.name}</span>
+        <div class="qty-controls">
+          <button onclick="changeQty(${id}, -1)">-</button>
+          <span>${qty}</span>
+          <button onclick="changeQty(${id}, 1)">+</button>
+        </div>
+        <button class="remove-btn" onclick="removeItem(${id})">ลบ</button>
+      `;
+      cartList.appendChild(row);
+    }
+    cartTotal.textContent = `${total} บาท`;
+    submitBtn.disabled = false;
+  }
+
+  async function submitOrder() {
+    const table = Number(tableSelect.value);
+    const items = Object.values(cart).map(({ item, qty }) => ({ menuId: item.id, qty }));
+    if (items.length === 0) return;
+
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'กำลังส่งออเดอร์...';
+    try {
+      const res = await fetch('/api/orders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ table, items }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'เกิดข้อผิดพลาด');
+      showToast(`สั่งอาหารโต๊ะ ${table} สำเร็จ`);
+      cart = {};
+      renderCart();
+      loadOrders(); // อัปเดตหน้าครัวทันทีหลังสั่ง
+    } catch (err) {
+      showToast('ผิดพลาด: ' + err.message);
+    } finally {
+      submitBtn.textContent = 'ยืนยันสั่งอาหาร';
+      submitBtn.disabled = Object.keys(cart).length === 0;
+    }
+  }
+
+  searchBox.addEventListener('input', () => {
+    const q = searchBox.value.trim().toLowerCase();
+    renderMenu(menu.filter(m => m.name.toLowerCase().includes(q)));
+  });
+  submitBtn.addEventListener('click', submitOrder);
+
+  /* ==================================================================
+     แท็บ 3: หน้าครัว (ทำงานเบื้องหลังตลอด แม้ไม่ได้เปิดแท็บนี้ค้างไว้)
+  ================================================================== */
+  let audioCtx = null;
+  function playChime() {
+    try {
+      audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+      const o = audioCtx.createOscillator();
+      const g = audioCtx.createGain();
+      o.connect(g); g.connect(audioCtx.destination);
+      o.frequency.value = 880;
+      g.gain.setValueAtTime(0.15, audioCtx.currentTime);
+      g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.5);
+      o.start(); o.stop(audioCtx.currentTime + 0.5);
+    } catch (e) { /* ต้องมี user interaction ก่อนถึงจะเล่นเสียงได้บนบางอุปกรณ์ */ }
+  }
+  document.body.addEventListener('touchstart', () => {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  }, { once: true });
+  document.body.addEventListener('click', () => {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  }, { once: true });
+
+  const STATUS_ORDER = { pending: 0, cooking: 1, served: 2 };
+  let knownOrderIds = new Set();
+  let firstLoad = true;
+
+  function setConnStatus(online) {
+    document.getElementById('connDot').classList.toggle('offline', !online);
+  }
+
+  async function loadOrders() {
+    let orders;
+    try {
+      orders = await fetch('/api/orders').then(r => r.json());
+      setConnStatus(true);
+    } catch (err) {
+      setConnStatus(false);
+      return;
+    }
+
+    orders.sort((a, b) => {
+      const s = STATUS_ORDER[a.status] - STATUS_ORDER[b.status];
+      if (s !== 0) return s;
+      return new Date(a.createdAt) - new Date(b.createdAt);
+    });
+
+    const grid = document.getElementById('orderGrid');
+    const emptyMsg = document.getElementById('emptyMsg');
+    grid.innerHTML = '';
+    emptyMsg.style.display = orders.length === 0 ? 'block' : 'none';
+
+    const currentIds = new Set();
+    let hasNewOrder = false;
+    let pendingCount = 0;
+
+    orders.forEach(order => {
+      currentIds.add(order.id);
+      if (order.status === 'pending') pendingCount++;
+      const isNew = !firstLoad && order.status === 'pending' && !knownOrderIds.has(order.id);
+      if (isNew) hasNewOrder = true;
+
+      const card = document.createElement('div');
+      card.className = `order-card ${order.status}${isNew ? ' new-order' : ''}`;
+      const itemsHtml = order.items.map(it => `<li>${it.name} x${it.qty}</li>`).join('');
+      const time = new Date(order.createdAt).toLocaleTimeString('th-TH');
+
+      card.innerHTML = `
+        <h3>โต๊ะ ${order.table} — ออเดอร์ #${order.id}</h3>
+        <div class="time">${time}</div>
+        <ul>${itemsHtml}</ul>
+        <div class="status-row">
+          <button class="btn-pending${order.status==='pending'?' active':''}" data-id="${order.id}" data-status="pending">รอทำ</button>
+          <button class="btn-cooking${order.status==='cooking'?' active':''}" data-id="${order.id}" data-status="cooking">กำลังทำ</button>
+          <button class="btn-served${order.status==='served'?' active':''}" data-id="${order.id}" data-status="served">เสิร์ฟแล้ว</button>
+        </div>
+      `;
+      grid.appendChild(card);
+    });
+
+    if (hasNewOrder) playChime();
+    knownOrderIds = currentIds;
+    firstLoad = false;
+
+    // อัปเดตตัวเลขแจ้งเตือนที่แท็บด้านบน
+    const badge = document.getElementById('pendingBadge');
+    if (pendingCount > 0) {
+      badge.style.display = 'flex';
+      badge.textContent = pendingCount;
+    } else {
+      badge.style.display = 'none';
+    }
+
+    grid.querySelectorAll('button[data-status]').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        await fetch(`/api/orders/${btn.dataset.id}/status`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status: btn.dataset.status }),
+        });
+        loadOrders();
+      });
+    });
+  }
+
+  /* ==================================================================
+     เริ่มต้นระบบทั้งหมด
+  ================================================================== */
+  loadTables();
+  initTableSelect();
+  loadMenu();
+  loadOrders();
+  setInterval(loadOrders, 4000); // รีเฟรชหน้าครัวอัตโนมัติทุก 4 วินาที (ทำงานตลอด แม้ไม่ได้เปิดแท็บนี้)
+</script>
+</body>
+</html>
