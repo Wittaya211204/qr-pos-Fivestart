@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8" />
+<title>QR Code ทุกโต๊ะ</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<style>
+  body { font-family:'Segoe UI', sans-serif; background:#f4f6f8; margin:0; padding:24px; }
+  h1 { color:#2d3436; }
+  nav a { margin-right:16px; color:#0984e3; text-decoration:none; font-weight:600; }
+  .toolbar { display:flex; gap:10px; align-items:center; margin:16px 0 24px; flex-wrap:wrap; }
+  .toolbar input[type="number"] { width:70px; padding:8px; border:1px solid #dfe6e9; border-radius:6px; }
+  .toolbar button { padding:9px 18px; border:none; border-radius:6px; background:#0984e3; color:#fff; font-size:14px; cursor:pointer; }
+  .toolbar button.secondary { background:#00b894; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(220px,1fr)); gap:16px; }
+  .card { background:#fff; border-radius:10px; padding:16px; text-align:center; box-shadow:0 2px 6px rgba(0,0,0,0.08); }
+  .card h3 { margin:0 0 10px; color:#2d3436; }
+  .card img { width:100%; max-width:200px; height:auto; }
+  .card .url { font-size:11px; color:#b2bec3; margin-top:8px; word-break:break-all; }
+  .loading { color:#b2bec3; margin-top:40px; text-align:center; }
+
+  @media print {
+    nav, .toolbar { display:none; }
+    body { background:#fff; padding:0; }
+    .grid { grid-template-columns:repeat(2, 1fr); gap:24px; }
+    .card { box-shadow:none; border:1px dashed #999; page-break-inside:avoid; }
+    .card .url { display:none; }
+  }
+</style>
+</head>
+<body>
+  <nav>
+    <a href="/order.html">หน้าสั่งอาหาร</a>
+    <a href="/kitchen.html">หน้าครัว</a>
+    <a href="/tables.html">QR ทุกโต๊ะ</a>
+  </nav>
+  <h1>QR Code สำหรับแต่ละโต๊ะ</h1>
+
+  <div class="toolbar">
+    <label>จำนวนโต๊ะ:</label>
+    <input type="number" id="tableCountInput" min="1" max="200" value="10" />
+    <button id="genBtn">สร้าง QR</button>
+    <button id="printBtn" class="secondary">🖨️ พิมพ์ทั้งหมด</button>
+  </div>
+
+  <div class="grid" id="grid"></div>
+  <div class="loading" id="loadingMsg" style="display:none;">กำลังสร้าง QR code...</div>
+
+<script>
+  const grid = document.getElementById('grid');
+  const loadingMsg = document.getElementById('loadingMsg');
+
+  async function generateQrs() {
+    const count = Math.max(1, Math.min(200, Number(document.getElementById('tableCountInput').value) || 10));
+    grid.innerHTML = '';
+    loadingMsg.style.display = 'block';
+
+    // ยิงขอ QR ทีละโต๊ะ (endpoint เดิม /api/qr/:table รองรับอยู่แล้ว)
+    for (let table = 1; table <= count; table++) {
+      try {
+        const res = await fetch(`/api/qr/${table}`);
+        const data = await res.json();
+
+        const card = document.createElement('div');
+        card.className = 'card';
+        card.innerHTML = `
+          <h3>โต๊ะ ${data.table}</h3>
+          <img src="${data.qr}" alt="QR โต๊ะ ${data.table}" />
+          <div class="url">${data.url}</div>
+        `;
+        grid.appendChild(card);
+      } catch (err) {
+        console.error(`สร้าง QR โต๊ะ ${table} ไม่สำเร็จ`, err);
+      }
+    }
+
+    loadingMsg.style.display = 'none';
+  }
+
+  document.getElementById('genBtn').addEventListener('click', generateQrs);
+  document.getElementById('printBtn').addEventListener('click', () => window.print());
+
+  generateQrs(); // โหลดครั้งแรกอัตโนมัติ (ค่าเริ่มต้น 10 โต๊ะ)
+</script>
+</body>
+</html>
