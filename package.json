@@ -1,17 +1,17 @@
 {
-  "name": "qr-pos",
+  "name": "qr-pos-fivestart",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "ระบบสั่งอาหารผ่าน QR code สำหรับร้านห้าดาว",
+  "main": "server.js",
   "scripts": {
-    "start": "node server.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node server.js"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "engines": {
+    "node": ">=18 <23"
+  },
   "dependencies": {
-    "express": "^4.19.2",
-    "qrcode": "^1.5.3"
+    "better-sqlite3": "^13.0.2",
+    "express": "^5.2.1",
+    "qrcode": "^1.5.4"
   }
 }

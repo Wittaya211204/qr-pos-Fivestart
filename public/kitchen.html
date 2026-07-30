@@ -5,22 +5,28 @@
 <title>หน้าครัว - ออเดอร์</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <style>
-  body { font-family:'Segoe UI', sans-serif; background:#f4f6f8; margin:0; padding:24px; }
-  h1 { color:#2d3436; }
+  body { font-family:'Segoe UI', sans-serif; background:#f4f6f8; margin:0; padding:24px; -webkit-user-select:none; user-select:none; }
+  h1 { color:#2d3436; display:flex; align-items:center; gap:10px; }
+  .conn-dot { width:10px; height:10px; border-radius:50%; background:#00b894; display:inline-block; }
+  .conn-dot.offline { background:#e17055; }
   nav a { margin-right:16px; color:#0984e3; text-decoration:none; font-weight:600; }
   .grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(260px,1fr)); gap:16px; margin-top:20px; }
-  .order-card { background:#fff; border-radius:10px; padding:16px; box-shadow:0 2px 6px rgba(0,0,0,0.08); border-left:6px solid #dfe6e9; }
+  .order-card { background:#fff; border-radius:10px; padding:16px; box-shadow:0 2px 6px rgba(0,0,0,0.08); border-left:6px solid #dfe6e9; transition:opacity 0.3s; }
   .order-card.pending { border-left-color:#e17055; }
   .order-card.cooking { border-left-color:#fdcb6e; }
-  .order-card.served { border-left-color:#00b894; opacity:0.6; }
+  .order-card.served { border-left-color:#00b894; opacity:0.55; }
+  .order-card.new-order { animation: flash 1s ease-in-out 2; }
+  @keyframes flash { 0%,100% { box-shadow:0 2px 6px rgba(0,0,0,0.08); } 50% { box-shadow:0 0 0 4px rgba(225,112,85,0.5); } }
   .order-card h3 { margin:0 0 6px; }
   .order-card ul { padding-left:18px; margin:8px 0; }
   .status-row { display:flex; gap:8px; margin-top:10px; }
-  .status-row button { flex:1; padding:6px; border:none; border-radius:6px; cursor:pointer; font-size:13px; }
+  .status-row button { flex:1; padding:10px 6px; border:none; border-radius:6px; cursor:pointer; font-size:13px; }
   .btn-pending { background:#e17055; color:#fff; }
   .btn-cooking { background:#fdcb6e; color:#2d3436; }
   .btn-served { background:#00b894; color:#fff; }
+  .status-row button.active { outline:3px solid #2d3436; }
   .time { color:#b2bec3; font-size:12px; }
+  .empty { color:#b2bec3; margin-top:40px; text-align:center; font-size:16px; }
 </style>
 </head>
 <body>
@@ -28,18 +34,70 @@
     <a href="/index.html">ตั้งค่าโต๊ะ (QR)</a>
     <a href="/kitchen.html">หน้าครัว / ดูออเดอร์</a>
   </nav>
-  <h1>ออเดอร์ทั้งหมด</h1>
+  <h1><span class="conn-dot" id="connDot"></span> ออเดอร์ทั้งหมด</h1>
   <div class="grid" id="orderGrid"></div>
+  <div class="empty" id="emptyMsg" style="display:none;">ยังไม่มีออเดอร์เข้ามา</div>
 
 <script>
+  // ---------- เสียงแจ้งเตือนออเดอร์ใหม่ (สร้างด้วย Web Audio ไม่ต้องพึ่งไฟล์เสียงภายนอก) ----------
+  let audioCtx = null;
+  function playChime() {
+    try {
+      audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+      const o = audioCtx.createOscillator();
+      const g = audioCtx.createGain();
+      o.connect(g); g.connect(audioCtx.destination);
+      o.frequency.value = 880;
+      g.gain.setValueAtTime(0.15, audioCtx.currentTime);
+      g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.5);
+      o.start(); o.stop(audioCtx.currentTime + 0.5);
+    } catch (e) { /* เบราว์เซอร์บาง iPad ต้องมี user interaction ก่อนถึงจะเล่นเสียงได้ */ }
+  }
+  // ปลดล็อกการเล่นเสียงบน iOS ด้วยการแตะหน้าจอครั้งแรก
+  document.body.addEventListener('touchstart', () => {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  }, { once: true });
+
+  const STATUS_ORDER = { pending: 0, cooking: 1, served: 2 };
+  let knownOrderIds = new Set();
+  let firstLoad = true;
+
+  function setConnStatus(online) {
+    document.getElementById('connDot').classList.toggle('offline', !online);
+  }
+
   async function loadOrders() {
-    const orders = await fetch('/api/orders').then(r => r.json());
+    let orders;
+    try {
+      orders = await fetch('/api/orders').then(r => r.json());
+      setConnStatus(true);
+    } catch (err) {
+      setConnStatus(false);
+      return; // เน็ตสะดุดชั่วคราว ไม่ต้อง re-render ทับของเดิม รอรอบถัดไป
+    }
+
+    // เรียง: รอทำ > กำลังทำ > เสิร์ฟแล้ว, ในกลุ่มเดียวกันเรียงเก่า-ใหม่
+    orders.sort((a, b) => {
+      const s = STATUS_ORDER[a.status] - STATUS_ORDER[b.status];
+      if (s !== 0) return s;
+      return new Date(a.createdAt) - new Date(b.createdAt);
+    });
+
     const grid = document.getElementById('orderGrid');
+    const emptyMsg = document.getElementById('emptyMsg');
     grid.innerHTML = '';
+    emptyMsg.style.display = orders.length === 0 ? 'block' : 'none';
+
+    const currentIds = new Set();
+    let hasNewOrder = false;
 
     orders.forEach(order => {
+      currentIds.add(order.id);
+      const isNew = !firstLoad && order.status === 'pending' && !knownOrderIds.has(order.id);
+      if (isNew) hasNewOrder = true;
+
       const card = document.createElement('div');
-      card.className = `order-card ${order.status}`;
+      card.className = `order-card ${order.status}${isNew ? ' new-order' : ''}`;
       const itemsHtml = order.items.map(it => `<li>${it.name} x${it.qty}</li>`).join('');
       const time = new Date(order.createdAt).toLocaleTimeString('th-TH');
 
@@ -48,13 +106,17 @@
         <div class="time">${time}</div>
         <ul>${itemsHtml}</ul>
         <div class="status-row">
-          <button class="btn-pending" data-id="${order.id}" data-status="pending">รอทำ</button>
-          <button class="btn-cooking" data-id="${order.id}" data-status="cooking">กำลังทำ</button>
-          <button class="btn-served" data-id="${order.id}" data-status="served">เสิร์ฟแล้ว</button>
+          <button class="btn-pending${order.status==='pending'?' active':''}" data-id="${order.id}" data-status="pending">รอทำ</button>
+          <button class="btn-cooking${order.status==='cooking'?' active':''}" data-id="${order.id}" data-status="cooking">กำลังทำ</button>
+          <button class="btn-served${order.status==='served'?' active':''}" data-id="${order.id}" data-status="served">เสิร์ฟแล้ว</button>
         </div>
       `;
       grid.appendChild(card);
     });
+
+    if (hasNewOrder) playChime();
+    knownOrderIds = currentIds;
+    firstLoad = false;
 
     grid.querySelectorAll('button[data-status]').forEach(btn => {
       btn.addEventListener('click', async () => {

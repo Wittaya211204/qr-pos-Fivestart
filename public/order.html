@@ -9,10 +9,12 @@
   h1 { color:#2d3436; font-size:22px; }
   .table-badge { display:inline-block; background:#0984e3; color:#fff; padding:4px 12px; border-radius:20px; font-size:14px; margin-bottom:16px; }
   .category { font-weight:700; margin:20px 0 8px; color:#636e72; text-transform:uppercase; font-size:13px; }
-  .item { background:#fff; border-radius:10px; padding:12px 16px; margin-bottom:10px; display:flex; justify-content:space-between; align-items:center; box-shadow:0 1px 4px rgba(0,0,0,0.06); }
+  .item { background:#fff; border-radius:10px; padding:12px 16px; margin-bottom:10px; display:flex; justify-content:space-between; align-items:center; gap:12px; box-shadow:0 1px 4px rgba(0,0,0,0.06); }
+  .item-img { width:56px; height:56px; border-radius:8px; object-fit:cover; background:#eee; flex-shrink:0; }
+  .item-left { display:flex; align-items:center; gap:12px; flex:1; min-width:0; }
   .item-info h3 { margin:0; font-size:16px; color:#2d3436; }
   .item-info span { color:#e17055; font-weight:600; }
-  .qty-control { display:flex; align-items:center; gap:8px; }
+  .qty-control { display:flex; align-items:center; gap:8px; flex-shrink:0; }
   .qty-control button { width:30px; height:30px; border:none; border-radius:6px; background:#dfe6e9; font-size:16px; cursor:pointer; }
   .qty-control span { min-width:20px; text-align:center; }
   .cart-bar { position:fixed; bottom:0; left:0; right:0; background:#2d3436; color:#fff; padding:14px 20px; display:flex; justify-content:space-between; align-items:center; }
@@ -38,6 +40,11 @@
 
   let cart = {}; // menuId -> qty
   let menu = [];
+
+  // รูป placeholder เผื่อเมนูยังไม่มีรูปจริง (data URI สีเทาแบบเบา ๆ ไม่ต้องพึ่งไฟล์ภายนอก)
+  const FALLBACK_IMG = 'data:image/svg+xml;utf8,' + encodeURIComponent(
+    `<svg xmlns="http://www.w3.org/2000/svg" width="56" height="56"><rect width="56" height="56" fill="#eee"/><text x="28" y="32" font-size="10" text-anchor="middle" fill="#aaa">no img</text></svg>`
+  );
 
   function toast(msg) {
     const t = document.getElementById('toast');
@@ -75,10 +82,15 @@
       menu.filter(m => m.category === cat).forEach(item => {
         const el = document.createElement('div');
         el.className = 'item';
+        const imgSrc = item.image || FALLBACK_IMG;
         el.innerHTML = `
-          <div class="item-info">
-            <h3>${item.name}</h3>
-            <span>${item.price} บาท</span>
+          <div class="item-left">
+            <img class="item-img" src="${imgSrc}" alt="${item.name}"
+                 onerror="this.onerror=null;this.src='${FALLBACK_IMG}';" />
+            <div class="item-info">
+              <h3>${item.name}</h3>
+              <span>${item.price} บาท</span>
+            </div>
           </div>
           <div class="qty-control">
             <button data-id="${item.id}" data-delta="-1">-</button>
