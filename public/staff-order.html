@@ -42,9 +42,14 @@
     display:flex; justify-content:space-between; align-items:center;
     background:#fff; border-radius:8px; padding:10px 14px; margin-bottom:8px;
     box-shadow:0 1px 4px rgba(0,0,0,0.06); cursor:pointer; user-select:none;
-    transition:background 0.15s;
+    transition:background 0.15s; gap:12px;
   }
   .item-row:hover { background:#eef7ff; }
+  .item-info { display:flex; align-items:center; gap:12px; flex:1; min-width:0; }
+  .item-thumb {
+    width:52px; height:52px; border-radius:8px; object-fit:cover; flex-shrink:0;
+    background:#f0f0f0; border:1px solid #eee;
+  }
   .item-name { font-size:14px; color:#2d3436; }
   .item-price { font-size:13px; color:#0984e3; font-weight:600; white-space:nowrap; margin-left:8px; }
 
@@ -164,7 +169,11 @@
         const row = document.createElement('div');
         row.className = 'item-row';
         row.innerHTML = `
-          <span class="item-name">${item.name}</span>
+          <div class="item-info">
+            <img class="item-thumb" src="${item.image || ''}" alt="${item.name}"
+                 onerror="this.src='https://via.placeholder.com/52?text=%20'" />
+            <span class="item-name">${item.name}</span>
+          </div>
           <span class="item-price">${item.price} บาท</span>
         `;
         row.addEventListener('click', () => addToCart(item));
