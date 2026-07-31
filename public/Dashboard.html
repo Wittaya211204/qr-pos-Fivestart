@@ -222,7 +222,8 @@
 
   <!-- ================= แท็บ 3: หน้าครัว ================= -->
   <div class="tab-content" id="tab-kitchen">
-    <h1><span class="conn-dot" id="connDot"></span> ออเดอร์ทั้งหมด</h1>
+    <h1><span><span class="conn-dot" id="connDot"></span> ออเดอร์ทั้งหมด</span>
+<button id="deleteAllBtn" class="btn-delete-all">ลบทั้งหมด</button></h1>
     <div class="grid" id="orderGrid"></div>
     <div class="empty" id="emptyMsg" style="display:none;">ยังไม่มีออเดอร์เข้ามา</div>
   </div>
@@ -566,6 +567,7 @@
           <button class="btn-served${order.status==='served'?' active':''}" data-id="${order.id}" data-status="served">เสิร์ฟแล้ว</button>
         </div>
         ${paymentHtml}
+        <button class="btn-delete-order" data-delete-id="${order.id}">🗑 ลบออเดอร์</button>
       `;
       grid.appendChild(card);
     });
@@ -613,6 +615,26 @@
         loadOrders();
       });
     });
+
+    grid.querySelectorAll('button[data-delete-id]').forEach(btn=>{
+      btn.addEventListener('click',async()=>{
+        if(!confirm('ต้องการลบออเดอร์นี้ใช่หรือไม่?')) return;
+        await fetch(`/api/orders/${btn.dataset.deleteId}`,{method:'DELETE'});
+        showToast('ลบออเดอร์แล้ว');
+        loadOrders();
+      });
+    });
+
+    const deleteAllBtn=document.getElementById('deleteAllBtn');
+    if(deleteAllBtn && !deleteAllBtn.dataset.bind){
+      deleteAllBtn.dataset.bind='1';
+      deleteAllBtn.addEventListener('click',async()=>{
+        if(!confirm('ลบออเดอร์ทั้งหมด?')) return;
+        await fetch('/api/orders',{method:'DELETE'});
+        showToast('ลบออเดอร์ทั้งหมดแล้ว');
+        loadOrders();
+      });
+    }
 
     grid.querySelectorAll('button[data-unpay-id]').forEach(btn => {
       btn.addEventListener('click', async () => {
