@@ -73,7 +73,7 @@ const menu = [
   { id: 21, name: 'เป็ดพะโล้ (ตัว)', price: 299, category: 'เมนูเป็ด', image: '/images/duck-stewed-whole.jpg' },
 
   // ---------- เมนูเสริมความอร่อย (SNACK MENU) ----------
-  { id: 22, name: 'ไส้กรอกไก่ก้อนโต /ชิ้น', price: 25, category: 'เมนูเสริมความอร่อย', image: '/images/snack-sausage-ball.jpg' },
+  { id: 22, name: 'ไส้กรอกไก่จับโบ้ /ชิ้น', price: 25, category: 'เมนูเสริมความอร่อย', image: '/images/snack-sausage-ball.jpg' },
   { id: 23, name: 'ไส้กรอกทอด /ชิ้น', price: 25, category: 'เมนูเสริมความอร่อย', image: '/images/snack-sausage-fried.jpg' },
   { id: 24, name: 'ไข่ยอร์ค /ชิ้น', price: 25, category: 'เมนูเสริมความอร่อย', image: '/images/snack-egg-yolk.jpg' },
   { id: 25, name: 'ปลาหมึกทอด /ชิ้น', price: 25, category: 'เมนูเสริมความอร่อย', image: '/images/snack-squid-fried.jpg' },
