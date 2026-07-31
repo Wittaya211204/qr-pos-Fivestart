@@ -188,18 +188,30 @@ app.get('/api/orders', (req, res) => {
 });
 
 // ---------- API: อัปเดตสถานะออเดอร์ ----------
-app.patch('/api/orders/:id/status', (req, res) => {
+// ---------- API: ลบออเดอร์ทีละใบ ----------
+app.delete('/api/orders/:id', (req, res) => {
   const id = Number(req.params.id);
   const existing = db.prepare(`SELECT id FROM orders WHERE id = ?`).get(id);
   if (!existing) return res.status(404).json({ error: 'ไม่พบออเดอร์' });
 
-  const { status } = req.body;
-  if (!['pending', 'cooking', 'served'].includes(status)) {
-    return res.status(400).json({ error: 'สถานะไม่ถูกต้อง' });
-  }
+  const deleteOrder = db.transaction(() => {
+    db.prepare(`DELETE FROM order_items WHERE order_id = ?`).run(id);
+    db.prepare(`DELETE FROM orders WHERE id = ?`).run(id);
+  });
+  deleteOrder();
 
-  db.prepare(`UPDATE orders SET status = ? WHERE id = ?`).run(status, id);
-  res.json({ id, status });
+  res.json({ id, deleted: true });
+});
+
+// ---------- API: ลบออเดอร์ทั้งหมด ----------
+app.delete('/api/orders', (req, res) => {
+  const deleteAll = db.transaction(() => {
+    db.prepare(`DELETE FROM order_items`).run();
+    db.prepare(`DELETE FROM orders`).run();
+  });
+  deleteAll();
+
+  res.json({ deleted: true });
 });
 
 // ---------- API: บันทึกการชำระเงิน (ปิดบิล / รายการขาย) ----------

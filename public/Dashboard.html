@@ -89,7 +89,17 @@
   #tab-order .submit-btn:hover:not(:disabled) { background:#00a884; }
 
   /* ==================== แท็บหน้าครัว ==================== */
-  #tab-kitchen h1 { display:flex; align-items:center; gap:10px; }
+#tab-kitchen h1 { display:flex; align-items:center; gap:10px; justify-content:space-between; }
+#tab-kitchen .btn-delete-all {
+  padding:8px 16px; border:none; border-radius:6px; background:#d63031;
+  color:#fff; font-size:13px; font-weight:600; cursor:pointer;
+}
+#tab-kitchen .btn-delete-order {
+  width:100%; margin-top:8px; padding:8px; border:1px solid #d63031;
+  border-radius:6px; background:#fff; color:#d63031; font-size:12px;
+  font-weight:600; cursor:pointer;
+}
+#tab-kitchen .btn-delete-order:hover { background:#d63031; color:#fff; }
   .conn-dot { width:10px; height:10px; border-radius:50%; background:#00b894; display:inline-block; }
   .conn-dot.offline { background:#e17055; }
   #tab-kitchen .grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(260px,1fr)); gap:16px; margin-top:20px; }
