@@ -95,10 +95,14 @@ const menu = [
   { id: 39, name: 'Schweppes เลม่อนโซดา', price: 16, category: 'เครื่องดื่ม', image: '/images/drink-schweppes.jpg' },
 
   // ---------- ซอส (SAUCE) ----------
-  { id: 40, name: 'น้ำจิ้มห้าดาว (ขวดเล็ก)', price: 4, category: 'ซอส', image: '/images/sauce-dip-small.jpg' },
-  { id: 41, name: 'น้ำจิ้มห้าดาว (ขวดใหญ่)', price: 49, category: 'ซอส', image: '/images/sauce-dip-large.jpg' },
-  { id: 42, name: 'น้ำพริกห้าดาว', price: 25, category: 'ซอส', image: '/images/sauce-chili-paste.jpg' },
+  { id: 40, name: 'น้ำจิ้มห้าดาว (ขวดเล็ก)', price: 20, category: 'ซอส', image: '/images/sauce-dip-small.jpg' },
+  { id: 41, name: 'น้ำจิ้มห้าดาวต้นตำรับ (ขวดใหญ่)', price: 49, category: 'ซอส', image: '/images/sauce-dip-large.jpg' },
+  { id: 42, name: 'น้ำพริกตาแดง', price: 25, category: 'ซอส', image: '/images/1sauce-chili-paste.jpg' },
+  { id: 43, name: 'น้ำพริกปลาร้าบอง', price: 25, category: 'ซอส', image: '/images/2sauce-chili-paste.jpg' },
+  { id: 44, name: 'น้ำพริกปลาร้าบองแมงดา', price: 25, category: 'ซอส', image: '/images/3sauce-chili-paste.jpg' },
 ];
+
+
 
 const TABLE_COUNT = 10;
 
