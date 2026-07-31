@@ -91,15 +91,13 @@ const menu = [
 
   // ---------- เครื่องดื่ม (DRINKS) ----------
   { id: 37, name: 'เป๊ปซี่ขวด 300มล', price: 13, category: 'เครื่องดื่ม', image: '/images/drink-pepsi.jpg' },
-  { id: 38, name: 'น้ำดื่มห้าดาว', price: 7, category: 'เครื่องดื่ม', image: '/images/drink-water.jpg' },
-  { id: 39, name: 'A Life Water', price: 10, category: 'เครื่องดื่ม', image: '/images/drink-alife.jpg' },
-  { id: 40, name: 'Schweppes เลม่อนโซดา', price: 16, category: 'เครื่องดื่ม', image: '/images/drink-schweppes.jpg' },
-  { id: 41, name: 'น้ำเก็กฮวย', price: 35, category: 'เครื่องดื่ม', image: '/images/drink-chrysanthemum.jpg' },
+  { id: 38, name: 'A Life Water', price: 10, category: 'เครื่องดื่ม', image: '/images/drink-water.jpg' },
+  { id: 39, name: 'Schweppes เลม่อนโซดา', price: 16, category: 'เครื่องดื่ม', image: '/images/drink-schweppes.jpg' },
 
   // ---------- ซอส (SAUCE) ----------
-  { id: 42, name: 'น้ำจิ้มห้าดาว (ขวดเล็ก)', price: 4, category: 'ซอส', image: '/images/sauce-dip-small.jpg' },
-  { id: 43, name: 'น้ำจิ้มห้าดาว (ขวดใหญ่)', price: 49, category: 'ซอส', image: '/images/sauce-dip-large.jpg' },
-  { id: 44, name: 'น้ำพริกห้าดาว', price: 25, category: 'ซอส', image: '/images/sauce-chili-paste.jpg' },
+  { id: 40, name: 'น้ำจิ้มห้าดาว (ขวดเล็ก)', price: 4, category: 'ซอส', image: '/images/sauce-dip-small.jpg' },
+  { id: 41, name: 'น้ำจิ้มห้าดาว (ขวดใหญ่)', price: 49, category: 'ซอส', image: '/images/sauce-dip-large.jpg' },
+  { id: 42, name: 'น้ำพริกห้าดาว', price: 25, category: 'ซอส', image: '/images/sauce-chili-paste.jpg' },
 ];
 
 const TABLE_COUNT = 10;
