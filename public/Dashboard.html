@@ -11,12 +11,13 @@
   /* ---------- แท็บด้านบน ---------- */
   .tabbar {
     display:flex; background:#fff; box-shadow:0 2px 6px rgba(0,0,0,0.08);
-    position:sticky; top:0; z-index:100;
+    position:sticky; top:0; z-index:100; overflow-x:auto;
   }
   .tabbar button {
     flex:1; padding:16px 8px; border:none; background:none; cursor:pointer;
     font-size:15px; font-weight:600; color:#636e72; border-bottom:3px solid transparent;
     position:relative; display:flex; align-items:center; justify-content:center; gap:8px;
+    white-space:nowrap;
   }
   .tabbar button.active { color:#0984e3; border-bottom-color:#0984e3; }
   .tabbar button:hover { background:#f4f6f8; }
@@ -95,19 +96,71 @@
   #tab-kitchen .order-card { background:#fff; border-radius:10px; padding:16px; box-shadow:0 2px 6px rgba(0,0,0,0.08); border-left:6px solid #dfe6e9; transition:opacity 0.3s; }
   #tab-kitchen .order-card.pending { border-left-color:#e17055; }
   #tab-kitchen .order-card.cooking { border-left-color:#fdcb6e; }
-  #tab-kitchen .order-card.served { border-left-color:#00b894; opacity:0.55; }
+  #tab-kitchen .order-card.served { border-left-color:#00b894; }
+  #tab-kitchen .order-card.paid { opacity:0.6; }
   #tab-kitchen .order-card.new-order { animation: flash 1s ease-in-out 2; }
   @keyframes flash { 0%,100% { box-shadow:0 2px 6px rgba(0,0,0,0.08); } 50% { box-shadow:0 0 0 4px rgba(225,112,85,0.5); } }
   #tab-kitchen .order-card h3 { margin:0 0 6px; }
   #tab-kitchen .order-card ul { padding-left:18px; margin:8px 0; }
+  #tab-kitchen .order-total { font-weight:700; color:#2d3436; font-size:14px; margin-top:4px; }
   #tab-kitchen .status-row { display:flex; gap:8px; margin-top:10px; }
   #tab-kitchen .status-row button { flex:1; padding:10px 6px; border:none; border-radius:6px; cursor:pointer; font-size:13px; }
   #tab-kitchen .btn-pending { background:#e17055; color:#fff; }
   #tab-kitchen .btn-cooking { background:#fdcb6e; color:#2d3436; }
   #tab-kitchen .btn-served { background:#00b894; color:#fff; }
   #tab-kitchen .status-row button.active { outline:3px solid #2d3436; }
+  #tab-kitchen .payment-row { display:flex; gap:8px; margin-top:8px; }
+  #tab-kitchen .payment-row button { flex:1; padding:9px 6px; border:none; border-radius:6px; cursor:pointer; font-size:13px; font-weight:700; }
+  #tab-kitchen .btn-cash { background:#00b894; color:#fff; }
+  #tab-kitchen .btn-transfer { background:#0984e3; color:#fff; }
+  #tab-kitchen .paid-badge {
+    margin-top:8px; padding:8px 10px; border-radius:6px; background:#dfe6e9;
+    color:#2d3436; font-size:12px; font-weight:700; display:flex;
+    justify-content:space-between; align-items:center;
+  }
+  #tab-kitchen .paid-badge button {
+    background:none; border:none; color:#d63031; font-size:11px; cursor:pointer; font-weight:600;
+  }
   #tab-kitchen .time { color:#b2bec3; font-size:12px; }
   #tab-kitchen .empty { color:#b2bec3; margin-top:40px; text-align:center; font-size:16px; }
+
+  /* ==================== แท็บยอดขายวันนี้ ==================== */
+  #tab-sales .date-row {
+    background:#fff; border-radius:10px; padding:14px 16px; margin-bottom:16px;
+    box-shadow:0 2px 6px rgba(0,0,0,0.08); display:flex; align-items:center; gap:12px; flex-wrap:wrap;
+  }
+  #tab-sales .date-row label { font-weight:600; color:#2d3436; }
+  #tab-sales .date-row input[type="date"] { padding:8px 12px; border-radius:6px; border:1px solid #ccc; font-size:15px; }
+  #tab-sales .date-row button {
+    padding:8px 16px; border:none; border-radius:6px; background:#0984e3; color:#fff;
+    font-size:14px; font-weight:600; cursor:pointer;
+  }
+  #tab-sales .date-row .today-btn { background:#636e72; }
+
+  #tab-sales .summary-grid {
+    display:grid; grid-template-columns:repeat(auto-fit, minmax(180px,1fr));
+    gap:16px; margin-bottom:20px;
+  }
+  #tab-sales .summary-card {
+    background:#fff; border-radius:10px; padding:18px; box-shadow:0 2px 6px rgba(0,0,0,0.08);
+    text-align:center;
+  }
+  #tab-sales .summary-card .label { font-size:13px; color:#636e72; margin-bottom:6px; }
+  #tab-sales .summary-card .value { font-size:24px; font-weight:700; color:#2d3436; }
+  #tab-sales .summary-card.cash .value { color:#00b894; }
+  #tab-sales .summary-card.transfer .value { color:#0984e3; }
+  #tab-sales .summary-card.grand .value { color:#d63031; }
+
+  #tab-sales .section-title { font-size:17px; font-weight:700; color:#2d3436; margin:24px 0 10px; }
+
+  #tab-sales table { width:100%; border-collapse:collapse; background:#fff; border-radius:10px; overflow:hidden; box-shadow:0 2px 6px rgba(0,0,0,0.08); }
+  #tab-sales th, #tab-sales td { padding:10px 14px; text-align:left; font-size:14px; border-bottom:1px solid #f0f0f0; }
+  #tab-sales th { background:#f4f6f8; color:#636e72; font-weight:700; }
+  #tab-sales td.num { text-align:right; }
+  #tab-sales .pill { display:inline-block; padding:3px 10px; border-radius:999px; font-size:12px; font-weight:700; }
+  #tab-sales .pill.cash { background:#e9fbf5; color:#00b894; }
+  #tab-sales .pill.transfer { background:#eaf4fd; color:#0984e3; }
+  #tab-sales .empty { color:#b2bec3; text-align:center; padding:30px; }
 
   .toast {
     position:fixed; bottom:24px; left:50%; transform:translateX(-50%);
@@ -126,6 +179,7 @@
       หน้าครัว / ดูออเดอร์
       <span class="badge" id="pendingBadge" style="display:none;">0</span>
     </button>
+    <button class="tab-btn" data-tab="tab-sales">ยอดขายวันนี้</button>
   </div>
 
   <!-- ================= แท็บ 1: ตั้งค่าโต๊ะ (QR) ================= -->
@@ -163,6 +217,65 @@
     <div class="empty" id="emptyMsg" style="display:none;">ยังไม่มีออเดอร์เข้ามา</div>
   </div>
 
+  <!-- ================= แท็บ 4: ยอดขายวันนี้ ================= -->
+  <div class="tab-content" id="tab-sales">
+    <h1>รายงานยอดขาย</h1>
+    <div class="date-row">
+      <label for="salesDate">ดูข้อมูลวันที่ :</label>
+      <input type="date" id="salesDate" />
+      <button class="today-btn" id="salesTodayBtn">วันนี้</button>
+      <button id="salesRefreshBtn">โหลดข้อมูล</button>
+    </div>
+
+    <div class="summary-grid">
+      <div class="summary-card cash">
+        <div class="label">เงินสด</div>
+        <div class="value" id="sumCash">0 บาท</div>
+      </div>
+      <div class="summary-card transfer">
+        <div class="label">เงินโอน</div>
+        <div class="value" id="sumTransfer">0 บาท</div>
+      </div>
+      <div class="summary-card grand">
+        <div class="label">รวมทั้งหมด</div>
+        <div class="value" id="sumGrand">0 บาท</div>
+      </div>
+      <div class="summary-card">
+        <div class="label">จำนวนบิล</div>
+        <div class="value" id="sumCount">0</div>
+      </div>
+    </div>
+
+    <div class="section-title">รายการขาย (เรียงตามลำดับที่ปิดบิล)</div>
+    <table>
+      <thead>
+        <tr>
+          <th>ลำดับ</th>
+          <th>โต๊ะ</th>
+          <th>รายการสินค้า</th>
+          <th>วิธีชำระ</th>
+          <th>เวลา</th>
+          <th class="num">ยอดเงิน</th>
+        </tr>
+      </thead>
+      <tbody id="salesTableBody"></tbody>
+    </table>
+    <div class="empty" id="salesEmpty" style="display:none;">ยังไม่มีรายการขายในวันนี้</div>
+
+    <div class="section-title">สรุปยอดขายแยกตามสินค้า</div>
+    <table>
+      <thead>
+        <tr>
+          <th>ชื่อสินค้า</th>
+          <th class="num">จำนวนที่ขาย</th>
+          <th class="num">ยอดขายรวม</th>
+        </tr>
+      </thead>
+      <tbody id="itemsSoldBody"></tbody>
+    </table>
+    <div class="empty" id="itemsSoldEmpty" style="display:none;">ยังไม่มีข้อมูลสินค้าที่ขาย</div>
+  </div>
+
   <div class="toast" id="toast"></div>
 
 <script>
@@ -175,6 +288,7 @@
       document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
       btn.classList.add('active');
       document.getElementById(btn.dataset.tab).classList.add('active');
+      if (btn.dataset.tab === 'tab-sales') loadSales();
     });
   });
 
@@ -371,6 +485,10 @@
     document.getElementById('connDot').classList.toggle('offline', !online);
   }
 
+  function orderTotal(order) {
+    return order.items.reduce((sum, it) => sum + it.price * it.qty, 0);
+  }
+
   async function loadOrders() {
     let orders;
     try {
@@ -403,19 +521,41 @@
       if (isNew) hasNewOrder = true;
 
       const card = document.createElement('div');
-      card.className = `order-card ${order.status}${isNew ? ' new-order' : ''}`;
+      const paidClass = order.paymentMethod ? ' paid' : '';
+      card.className = `order-card ${order.status}${paidClass}${isNew ? ' new-order' : ''}`;
       const itemsHtml = order.items.map(it => `<li>${it.name} x${it.qty}</li>`).join('');
       const time = new Date(order.createdAt).toLocaleTimeString('th-TH');
+      const total = orderTotal(order);
+
+      let paymentHtml;
+      if (order.paymentMethod) {
+        const label = order.paymentMethod === 'cash' ? 'เงินสด' : 'เงินโอน';
+        paymentHtml = `
+          <div class="paid-badge">
+            <span>✅ ชำระแล้ว (${label}) ${total} บาท</span>
+            <button data-unpay-id="${order.id}">ยกเลิก</button>
+          </div>
+        `;
+      } else {
+        paymentHtml = `
+          <div class="payment-row">
+            <button class="btn-cash" data-pay-id="${order.id}" data-method="cash">💵 เงินสด</button>
+            <button class="btn-transfer" data-pay-id="${order.id}" data-method="transfer">🏦 เงินโอน</button>
+          </div>
+        `;
+      }
 
       card.innerHTML = `
         <h3>โต๊ะ ${order.table} — ออเดอร์ #${order.id}</h3>
         <div class="time">${time}</div>
         <ul>${itemsHtml}</ul>
+        <div class="order-total">รวม ${total} บาท</div>
         <div class="status-row">
           <button class="btn-pending${order.status==='pending'?' active':''}" data-id="${order.id}" data-status="pending">รอทำ</button>
           <button class="btn-cooking${order.status==='cooking'?' active':''}" data-id="${order.id}" data-status="cooking">กำลังทำ</button>
           <button class="btn-served${order.status==='served'?' active':''}" data-id="${order.id}" data-status="served">เสิร์ฟแล้ว</button>
         </div>
+        ${paymentHtml}
       `;
       grid.appendChild(card);
     });
@@ -443,6 +583,115 @@
         loadOrders();
       });
     });
+
+    grid.querySelectorAll('button[data-pay-id]').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const id = btn.dataset.payId;
+        const method = btn.dataset.method;
+        try {
+          const res = await fetch(`/api/orders/${id}/payment`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ method }),
+          });
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.error || 'บันทึกไม่สำเร็จ');
+          showToast('บันทึกการชำระเงินสำเร็จ');
+        } catch (err) {
+          showToast('ผิดพลาด: ' + err.message);
+        }
+        loadOrders();
+      });
+    });
+
+    grid.querySelectorAll('button[data-unpay-id]').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const id = btn.dataset.unpayId;
+        await fetch(`/api/orders/${id}/unpay`, { method: 'PATCH' });
+        showToast('ยกเลิกการชำระเงินแล้ว');
+        loadOrders();
+      });
+    });
+  }
+
+  /* ==================================================================
+     แท็บ 4: ยอดขายวันนี้ / รายงานบัญชี
+  ================================================================== */
+  function todayThaiDateStr() {
+    const now = new Date();
+    const thai = new Date(now.getTime() + 7 * 60 * 60 * 1000);
+    return thai.toISOString().slice(0, 10);
+  }
+
+  const salesDateInput = document.getElementById('salesDate');
+  const salesTodayBtn = document.getElementById('salesTodayBtn');
+  const salesRefreshBtn = document.getElementById('salesRefreshBtn');
+
+  salesDateInput.value = todayThaiDateStr();
+
+  salesTodayBtn.addEventListener('click', () => {
+    salesDateInput.value = todayThaiDateStr();
+    loadSales();
+  });
+  salesRefreshBtn.addEventListener('click', loadSales);
+
+  async function loadSales() {
+    const date = salesDateInput.value || todayThaiDateStr();
+    let data;
+    try {
+      data = await fetch(`/api/sales/daily?date=${date}`).then(r => r.json());
+    } catch (err) {
+      showToast('โหลดข้อมูลยอดขายไม่สำเร็จ');
+      return;
+    }
+
+    document.getElementById('sumCash').textContent = `${data.totalCash} บาท`;
+    document.getElementById('sumTransfer').textContent = `${data.totalTransfer} บาท`;
+    document.getElementById('sumGrand').textContent = `${data.grandTotal} บาท`;
+    document.getElementById('sumCount').textContent = data.orderCount;
+
+    const tbody = document.getElementById('salesTableBody');
+    const salesEmpty = document.getElementById('salesEmpty');
+    tbody.innerHTML = '';
+    if (data.transactions.length === 0) {
+      salesEmpty.style.display = 'block';
+    } else {
+      salesEmpty.style.display = 'none';
+      data.transactions.forEach(tx => {
+        const itemsText = tx.items.map(it => `${it.name} x${it.qty}`).join(', ');
+        const time = new Date(tx.paidAt).toLocaleTimeString('th-TH');
+        const pillClass = tx.paymentMethod === 'cash' ? 'cash' : 'transfer';
+        const pillLabel = tx.paymentMethod === 'cash' ? 'เงินสด' : 'เงินโอน';
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${tx.no}</td>
+          <td>โต๊ะ ${tx.table}</td>
+          <td>${itemsText}</td>
+          <td><span class="pill ${pillClass}">${pillLabel}</span></td>
+          <td>${time}</td>
+          <td class="num">${tx.total} บาท</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    const itemsBody = document.getElementById('itemsSoldBody');
+    const itemsEmpty = document.getElementById('itemsSoldEmpty');
+    itemsBody.innerHTML = '';
+    if (data.itemsSold.length === 0) {
+      itemsEmpty.style.display = 'block';
+    } else {
+      itemsEmpty.style.display = 'none';
+      data.itemsSold.forEach(it => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${it.name}</td>
+          <td class="num">${it.qty}</td>
+          <td class="num">${it.revenue} บาท</td>
+        `;
+        itemsBody.appendChild(tr);
+      });
+    }
   }
 
   /* ==================================================================
