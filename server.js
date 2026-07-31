@@ -44,7 +44,7 @@ const menu = [
   { id: 4, name: 'ไก่ย่างสูตรต้นตำรับ (เต็มตัว)', price: 165, category: 'เมนูไก่ย่าง', image: '/images/grilled-original-full.jpg' },
   { id: 5, name: 'ไก่ย่างสูตรพริกไก่ดำ (ครึ่งตัว)', price: 90, category: 'เมนูไก่ย่าง', image: '/images/grilled-pepper-half.jpg' },
   { id: 6, name: 'ไก่ย่างสูตรพริกไก่ดำ (เต็มตัว)', price: 175, category: 'เมนูไก่ย่าง', image: '/images/grilled-pepper-full.jpg' },
-  { id: 7, name: 'ไก่ย่างบางตัด /ชิ้น', price: 59, category: 'เมนูไก่ย่าง', image: '/images/grilled-bangtat.jpg' },
+  { id: 7, name: 'ไก่ย่างบางตาล /ชิ้น', price: 59, category: 'เมนูไก่ย่าง', image: '/images/grilled-bangtat.jpg' },
 
   // ---------- เมนูไก่ทอด (FRIED MENU) ----------
   { id: 8, name: 'ไก่ทอดต้นตำรับ /ชิ้น', price: 25, category: 'เมนูไก่ทอด', image: '/images/fried-original-1.jpg' },
