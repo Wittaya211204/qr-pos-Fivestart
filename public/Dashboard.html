@@ -249,7 +249,14 @@
       for (const item of categories[cat]) {
         const row = document.createElement('div');
         row.className = 'item-row';
-        row.innerHTML = `<span class="item-name">${item.name}</span><span class="item-price">${item.price} บาท</span>`;
+        row.innerHTML = `
+          <div class="item-info">
+            <img class="item-thumb" src="${item.image || ''}" alt="${item.name}"
+                 onerror="this.src='https://via.placeholder.com/52?text=%20'" />
+            <span class="item-name">${item.name}</span>
+          </div>
+          <span class="item-price">${item.price} บาท</span>
+        `;
         row.addEventListener('click', () => addToCart(item));
         block.appendChild(row);
       }
