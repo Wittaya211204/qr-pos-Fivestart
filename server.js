@@ -81,8 +81,8 @@ const menu = [
   { id: 27, name: 'ไก่จ๊อพริกสด /ชิ้น', price: 25, category: 'เมนูเสริมความอร่อย', image: '/images/snack-chicken-spicy.jpg' },
   { id: 28, name: 'ไก่จ๊อสามสี /ชิ้น', price: 25, category: 'เมนูเสริมความอร่อย', image: '/images/snack-chicken-somtam.jpg' },
   { id: 29, name: 'สาหร่ายทรงเครื่องห้าดาว /ชิ้น', price: 25, category: 'เมนูเสริมความอร่อย', image: '/images/snack-seaweed.jpg' },
-  { id: 30, name: 'เฟรนช์ฟรายส๋/ชิ้น', price: 30, category: 'เมนูเสริมความอร่อย', image: '/images/snack-wings.jpg' },
-  { id: 31, name: 'เกี่ยวซ่าไก่ /ชิ้น', price: 30, category: 'เมนูเสริมความอร่อย', image: '/images/snack-chicken-spicy2.jpg' },
+  { id: 30, name: 'เฟรนช์ฟรายส์ /ชิ้น', price: 30, category: 'เมนูเสริมความอร่อย', image: '/images/snack-wings.jpg' },
+  { id: 31, name: 'เกี๊ยวซ่าไก่ /ชิ้น', price: 30, category: 'เมนูเสริมความอร่อย', image: '/images/snack-chicken-spicy2.jpg' },
   { id: 32, name: 'ไก่ทอดคาราเกะ /ชิ้น', price: 35, category: 'เมนูเสริมความอร่อย', image: '/images/snack-garlic-chicken.jpg' },
   { id: 33, name: 'นักเก็ตไก่ /ชิ้น', price: 35, category: 'เมนูเสริมความอร่อย', image: '/images/snack-sweet-potato.jpg' },
   { id: 34, name: 'ไก่ห่อสาหร่าย /ชิ้น', price: 35, category: 'เมนูเสริมความอร่อย', image: '/images/snack-smoked-spicy.jpg' },
@@ -101,8 +101,6 @@ const menu = [
   { id: 43, name: 'น้ำพริกปลาร้าบอง', price: 25, category: 'ซอส', image: '/images/2sauce-chili-paste.jpg' },
   { id: 44, name: 'น้ำพริกปลาร้าบองแมงดา', price: 25, category: 'ซอส', image: '/images/3sauce-chili-paste.jpg' },
 ];
-
-
 
 const TABLE_COUNT = 10;
 
@@ -188,6 +186,20 @@ app.get('/api/orders', (req, res) => {
 });
 
 // ---------- API: อัปเดตสถานะออเดอร์ ----------
+app.patch('/api/orders/:id/status', (req, res) => {
+  const id = Number(req.params.id);
+  const existing = db.prepare(`SELECT id FROM orders WHERE id = ?`).get(id);
+  if (!existing) return res.status(404).json({ error: 'ไม่พบออเดอร์' });
+
+  const { status } = req.body;
+  if (!['pending', 'cooking', 'served'].includes(status)) {
+    return res.status(400).json({ error: 'สถานะไม่ถูกต้อง' });
+  }
+
+  db.prepare(`UPDATE orders SET status = ? WHERE id = ?`).run(status, id);
+  res.json({ id, status });
+});
+
 // ---------- API: ลบออเดอร์ทีละใบ ----------
 app.delete('/api/orders/:id', (req, res) => {
   const id = Number(req.params.id);
