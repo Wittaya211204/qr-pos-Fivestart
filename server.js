@@ -90,7 +90,7 @@ const menu = [
   { id: 36, name: 'ข้าวเหนียว /ชิ้น', price: 10, category: 'เมนูเสริมความอร่อย', image: '/images/sticky-rice.jpg' },
 
   // ---------- เครื่องดื่ม (DRINKS) ----------
-  { id: 37, name: 'โค้ก / โค้กซีโร่', price: 13, category: 'เครื่องดื่ม', image: '/images/drink-coke.jpg' },
+  { id: 37, name: 'เป๊ปซี่ขวด 300มล', price: 13, category: 'เครื่องดื่ม', image: '/images/drink-pepsi.jpg' },
   { id: 38, name: 'น้ำดื่มห้าดาว', price: 7, category: 'เครื่องดื่ม', image: '/images/drink-water.jpg' },
   { id: 39, name: 'A Life Water', price: 10, category: 'เครื่องดื่ม', image: '/images/drink-alife.jpg' },
   { id: 40, name: 'Schweppes เลม่อนโซดา', price: 16, category: 'เครื่องดื่ม', image: '/images/drink-schweppes.jpg' },
