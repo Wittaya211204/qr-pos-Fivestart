@@ -11,7 +11,6 @@ app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
 // ---------- ฐานข้อมูล SQLite (ไฟล์เดียว เก็บถาวร ไม่หายตอน restart) ----------
-// DB_PATH ปรับได้ผ่าน environment variable เผื่อ deploy ที่ต้องใช้ disk แยก (เช่น Render Disk)
 const DB_PATH = process.env.DB_PATH || path.join(__dirname, 'data.db');
 const db = new Database(DB_PATH);
 db.pragma('journal_mode = WAL');
@@ -34,6 +33,15 @@ db.exec(`
     FOREIGN KEY (order_id) REFERENCES orders(id)
   );
 `);
+
+// ---------- Migration: เพิ่มคอลัมน์สำหรับบันทึกการชำระเงิน (รองรับ DB เก่าที่มีอยู่แล้ว) ----------
+const orderColumns = db.prepare(`PRAGMA table_info(orders)`).all().map((c) => c.name);
+if (!orderColumns.includes('payment_method')) {
+  db.exec(`ALTER TABLE orders ADD COLUMN payment_method TEXT`);
+}
+if (!orderColumns.includes('paid_at')) {
+  db.exec(`ALTER TABLE orders ADD COLUMN paid_at TEXT`);
+}
 
 // ---------- ข้อมูลจำลอง (เก็บใน memory) ----------
 const menu = [
@@ -134,7 +142,6 @@ app.post('/api/orders', (req, res) => {
 
   const createdAt = new Date().toISOString();
 
-  // ใช้ transaction เพื่อให้บันทึก order + items สำเร็จพร้อมกันทั้งหมด หรือไม่สำเร็จเลย
   const createOrder = db.transaction(() => {
     const info = insertOrderStmt.run(Number(table), createdAt);
     const orderId = info.lastInsertRowid;
@@ -165,6 +172,8 @@ app.get('/api/orders', (req, res) => {
     table: o.table_no,
     status: o.status,
     createdAt: o.created_at,
+    paymentMethod: o.payment_method,
+    paidAt: o.paid_at,
     items: itemStmt.all(o.id).map((it) => ({
       menuId: it.menu_id,
       name: it.name,
@@ -189,6 +198,106 @@ app.patch('/api/orders/:id/status', (req, res) => {
 
   db.prepare(`UPDATE orders SET status = ? WHERE id = ?`).run(status, id);
   res.json({ id, status });
+});
+
+// ---------- API: บันทึกการชำระเงิน (ปิดบิล / รายการขาย) ----------
+app.patch('/api/orders/:id/payment', (req, res) => {
+  const id = Number(req.params.id);
+  const existing = db.prepare(`SELECT id FROM orders WHERE id = ?`).get(id);
+  if (!existing) return res.status(404).json({ error: 'ไม่พบออเดอร์' });
+
+  const { method } = req.body;
+  if (!['cash', 'transfer'].includes(method)) {
+    return res.status(400).json({ error: 'วิธีชำระเงินไม่ถูกต้อง (cash หรือ transfer เท่านั้น)' });
+  }
+
+  const paidAt = new Date().toISOString();
+  db.prepare(`UPDATE orders SET payment_method = ?, paid_at = ? WHERE id = ?`).run(method, paidAt, id);
+
+  res.json({ id, paymentMethod: method, paidAt });
+});
+
+// ---------- ยกเลิกการบันทึกชำระเงิน (เผื่อกดผิด) ----------
+app.patch('/api/orders/:id/unpay', (req, res) => {
+  const id = Number(req.params.id);
+  const existing = db.prepare(`SELECT id FROM orders WHERE id = ?`).get(id);
+  if (!existing) return res.status(404).json({ error: 'ไม่พบออเดอร์' });
+
+  db.prepare(`UPDATE orders SET payment_method = NULL, paid_at = NULL WHERE id = ?`).run(id);
+  res.json({ id, paymentMethod: null, paidAt: null });
+});
+
+// ---------- helper: หาวันที่ปัจจุบันตามเวลาไทย (UTC+7) รูปแบบ YYYY-MM-DD ----------
+function getTodayThaiDateStr() {
+  const now = new Date();
+  const thaiMillis = now.getTime() + 7 * 60 * 60 * 1000;
+  return new Date(thaiMillis).toISOString().slice(0, 10);
+}
+
+// ---------- API: รายงานยอดขายรายวัน (สำหรับทำบัญชี) ----------
+app.get('/api/sales/daily', (req, res) => {
+  const dateStr = req.query.date || getTodayThaiDateStr();
+
+  // ขอบเขตของวันนั้นตามเวลาไทย แปลงเป็น ISO (UTC) เพื่อเทียบกับ paid_at ที่เก็บแบบ UTC
+  let startIso, endIso;
+  try {
+    startIso = new Date(`${dateStr}T00:00:00+07:00`).toISOString();
+    endIso = new Date(`${dateStr}T23:59:59.999+07:00`).toISOString();
+  } catch (err) {
+    return res.status(400).json({ error: 'รูปแบบวันที่ไม่ถูกต้อง (ต้องเป็น YYYY-MM-DD)' });
+  }
+
+  const paidOrders = db
+    .prepare(
+      `SELECT * FROM orders
+       WHERE payment_method IS NOT NULL AND paid_at BETWEEN ? AND ?
+       ORDER BY paid_at ASC`
+    )
+    .all(startIso, endIso);
+
+  const itemStmt = db.prepare(`SELECT name, price, qty FROM order_items WHERE order_id = ?`);
+
+  let totalCash = 0;
+  let totalTransfer = 0;
+  const itemsSoldMap = {};
+
+  const transactions = paidOrders.map((o, idx) => {
+    const items = itemStmt.all(o.id);
+    const total = items.reduce((sum, it) => sum + it.price * it.qty, 0);
+
+    if (o.payment_method === 'cash') totalCash += total;
+    else if (o.payment_method === 'transfer') totalTransfer += total;
+
+    items.forEach((it) => {
+      if (!itemsSoldMap[it.name]) {
+        itemsSoldMap[it.name] = { name: it.name, qty: 0, revenue: 0 };
+      }
+      itemsSoldMap[it.name].qty += it.qty;
+      itemsSoldMap[it.name].revenue += it.price * it.qty;
+    });
+
+    return {
+      no: idx + 1,
+      orderId: o.id,
+      table: o.table_no,
+      total,
+      paymentMethod: o.payment_method,
+      paidAt: o.paid_at,
+      items: items.map((it) => ({ name: it.name, qty: it.qty, price: it.price })),
+    };
+  });
+
+  const itemsSold = Object.values(itemsSoldMap).sort((a, b) => b.qty - a.qty);
+
+  res.json({
+    date: dateStr,
+    totalCash,
+    totalTransfer,
+    grandTotal: totalCash + totalTransfer,
+    orderCount: transactions.length,
+    transactions,
+    itemsSold,
+  });
 });
 
 // ---------- API: สร้าง QR code สำหรับแต่ละโต๊ะ ----------
