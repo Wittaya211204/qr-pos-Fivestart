@@ -64,7 +64,7 @@ const menu = [
   { id: 14, name: 'ปีกไก่สูตรกรอบ /ชิ้น', price: 65, category: 'เมนูไก่ทอด', image: '/images/fried-wing-crispy-1.jpg' },
   { id: 15, name: 'ปีกไก่สูตรกรอบ (5 ชิ้น)', price: 75, category: 'เมนูไก่ทอด', image: '/images/fried-wing-crispy-5.jpg' },
   { id: 16, name: 'ไก่ทอดเกลือ', price: 59, category: 'เมนูไก่ทอด', image: '/images/fried-salt.jpg' },
-  { id: 17, name: 'ไก่ผัดน้ำปลาทอด', price: 99, category: 'เมนูไก่ทอด', image: '/images/fried-fishsauce-stirfry.jpg' },
+  { id: 17, name: 'ไก่ตัมน้ำปลาทอด', price: 99, category: 'เมนูไก่ทอด', image: '/images/fried-fishsauce-stirfry.jpg' },
 
   // ---------- เมนูเป็ด (DUCK MENU) ----------
   { id: 18, name: 'เป็ดทอดเยอรมัน (ครึ่งตัว)', price: 159, category: 'เมนูเป็ด', image: '/images/duck-fried-german-half.jpg' },
