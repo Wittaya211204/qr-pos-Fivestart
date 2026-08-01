@@ -284,8 +284,8 @@ app.patch('/api/orders/:id/payment', (req, res) => {
   if (!existing) return res.status(404).json({ error: 'ไม่พบออเดอร์' });
 
   const { method } = req.body;
-  if (!['cash', 'transfer'].includes(method)) {
-    return res.status(400).json({ error: 'วิธีชำระเงินไม่ถูกต้อง (cash หรือ transfer เท่านั้น)' });
+  if (!['cash', 'transfer', 'linemp'].includes(method)) {
+    return res.status(400).json({ error: 'วิธีชำระเงินไม่ถูกต้อง (cash, transfer หรือ linemp เท่านั้น)' });
   }
 
   const paidAt = new Date().toISOString();
@@ -336,6 +336,7 @@ app.get('/api/sales/daily', (req, res) => {
 
   let totalCash = 0;
   let totalTransfer = 0;
+  let totalLinemp = 0;
   const itemsSoldMap = {};
 
   const transactions = paidOrders.map((o, idx) => {
@@ -344,6 +345,7 @@ app.get('/api/sales/daily', (req, res) => {
 
     if (o.payment_method === 'cash') totalCash += total;
     else if (o.payment_method === 'transfer') totalTransfer += total;
+    else if (o.payment_method === 'linemp') totalLinemp += total;
 
     items.forEach((it) => {
       if (!itemsSoldMap[it.name]) {
@@ -370,7 +372,8 @@ app.get('/api/sales/daily', (req, res) => {
     date: dateStr,
     totalCash,
     totalTransfer,
-    grandTotal: totalCash + totalTransfer,
+    totalLinemp,
+    grandTotal: totalCash + totalTransfer + totalLinemp,
     orderCount: transactions.length,
     transactions,
     itemsSold,

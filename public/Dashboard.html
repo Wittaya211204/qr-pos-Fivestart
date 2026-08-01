@@ -136,10 +136,11 @@
   #tab-kitchen .btn-cooking { background:#fdcb6e; color:#2d3436; }
   #tab-kitchen .btn-served { background:#00b894; color:#fff; }
   #tab-kitchen .status-row button.active { outline:3px solid #2d3436; }
-  #tab-kitchen .payment-row { display:flex; gap:8px; margin-top:8px; }
-  #tab-kitchen .payment-row button { flex:1; padding:9px 6px; border:none; border-radius:6px; cursor:pointer; font-size:13px; font-weight:700; }
+  #tab-kitchen .payment-row { display:flex; gap:8px; margin-top:8px; flex-wrap:wrap; }
+  #tab-kitchen .payment-row button { flex:1; min-width:80px; padding:9px 6px; border:none; border-radius:6px; cursor:pointer; font-size:13px; font-weight:700; }
   #tab-kitchen .btn-cash { background:#00b894; color:#fff; }
   #tab-kitchen .btn-transfer { background:#0984e3; color:#fff; }
+  #tab-kitchen .btn-linemp { background:#06c755; color:#fff; }
   #tab-kitchen .paid-badge {
     margin-top:8px; padding:8px 10px; border-radius:6px; background:#dfe6e9;
     color:#2d3436; font-size:12px; font-weight:700; display:flex;
@@ -176,6 +177,7 @@
   #tab-sales .summary-card .value { font-size:24px; font-weight:700; color:#2d3436; }
   #tab-sales .summary-card.cash .value { color:#00b894; }
   #tab-sales .summary-card.transfer .value { color:#0984e3; }
+  #tab-sales .summary-card.linemp .value { color:#06c755; }
   #tab-sales .summary-card.grand .value { color:#d63031; }
 
   #tab-sales .section-title { font-size:17px; font-weight:700; color:#2d3436; margin:24px 0 10px; }
@@ -187,6 +189,7 @@
   #tab-sales .pill { display:inline-block; padding:3px 10px; border-radius:999px; font-size:12px; font-weight:700; }
   #tab-sales .pill.cash { background:#e9fbf5; color:#00b894; }
   #tab-sales .pill.transfer { background:#eaf4fd; color:#0984e3; }
+  #tab-sales .pill.linemp { background:#e6f9ec; color:#06c755; }
   #tab-sales .empty { color:#b2bec3; text-align:center; padding:30px; }
 
   .toast {
@@ -263,6 +266,10 @@
       <div class="summary-card transfer">
         <div class="label">เงินโอน</div>
         <div class="value" id="sumTransfer">0 บาท</div>
+      </div>
+      <div class="summary-card linemp">
+        <div class="label">Line Man</div>
+        <div class="value" id="sumLinemp">0 บาท</div>
       </div>
       <div class="summary-card grand">
         <div class="label">รวมทั้งหมด</div>
@@ -572,6 +579,7 @@
     if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
   }, { once: true });
 
+  const PAYMENT_LABELS = { cash: 'เงินสด', transfer: 'เงินโอน', linemp: 'Line Man' };
   const STATUS_ORDER = { pending: 0, cooking: 1, served: 2 };
   let knownOrderIds = new Set();
   let firstLoad = true;
@@ -624,7 +632,7 @@
 
       let paymentHtml;
       if (order.paymentMethod) {
-        const label = order.paymentMethod === 'cash' ? 'เงินสด' : 'เงินโอน';
+        const label = PAYMENT_LABELS[order.paymentMethod] || order.paymentMethod;
         paymentHtml = `
           <div class="paid-badge">
             <span>✅ ชำระแล้ว (${label}) ${total} บาท</span>
@@ -636,6 +644,7 @@
           <div class="payment-row">
             <button class="btn-cash" data-pay-id="${order.id}" data-method="cash">💵 เงินสด</button>
             <button class="btn-transfer" data-pay-id="${order.id}" data-method="transfer">🏦 เงินโอน</button>
+            <button class="btn-linemp" data-pay-id="${order.id}" data-method="linemp">🛵 Line Man</button>
           </div>
         `;
       }
@@ -763,6 +772,7 @@
 
     document.getElementById('sumCash').textContent = `${data.totalCash} บาท`;
     document.getElementById('sumTransfer').textContent = `${data.totalTransfer} บาท`;
+    document.getElementById('sumLinemp').textContent = `${data.totalLinemp} บาท`;
     document.getElementById('sumGrand').textContent = `${data.grandTotal} บาท`;
     document.getElementById('sumCount').textContent = data.orderCount;
 
@@ -776,8 +786,8 @@
       data.transactions.forEach(tx => {
         const itemsText = tx.items.map(it => `${it.name} x${it.qty}`).join(', ');
         const time = new Date(tx.paidAt).toLocaleTimeString('th-TH');
-        const pillClass = tx.paymentMethod === 'cash' ? 'cash' : 'transfer';
-        const pillLabel = tx.paymentMethod === 'cash' ? 'เงินสด' : 'เงินโอน';
+        const pillClass = tx.paymentMethod;
+        const pillLabel = PAYMENT_LABELS[tx.paymentMethod] || tx.paymentMethod;
         const tr = document.createElement('tr');
         tr.innerHTML = `
           <td>${tx.no}</td>
