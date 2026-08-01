@@ -74,7 +74,24 @@
   }
   #tab-order .item-row:hover { background:#eef7ff; }
   #tab-order .item-name { font-size:14px; color:#2d3436; }
-  #tab-order .item-price { font-size:13px; color:#0984e3; font-weight:600; white-space:nowrap; margin-left:8px; }
+  #tab-order .item-price { font-size:13px; color:#0984e3; font-weight:600; white-space:nowrap; }
+  #tab-order .item-price-wrap { display:flex; align-items:center; gap:6px; margin-left:8px; flex-shrink:0; }
+  #tab-order .edit-price-btn {
+    background:none; border:none; cursor:pointer; font-size:14px; color:#b2bec3;
+    padding:2px 4px; border-radius:4px; line-height:1;
+  }
+  #tab-order .edit-price-btn:hover { color:#0984e3; background:#eef7ff; }
+  #tab-order .price-edit-form { display:flex; align-items:center; gap:4px; }
+  #tab-order .price-edit-form input {
+    width:70px; padding:5px 6px; border:1px solid #0984e3; border-radius:5px; font-size:13px;
+  }
+  #tab-order .price-edit-form button {
+    border:none; border-radius:5px; padding:5px 8px; font-size:12px; cursor:pointer; font-weight:600;
+  }
+  #tab-order .price-save-btn { background:#00b894; color:#fff; }
+  #tab-order .price-save-btn:hover { background:#00a884; }
+  #tab-order .price-cancel-btn { background:#dfe6e9; color:#2d3436; }
+  #tab-order .price-cancel-btn:hover { background:#cfd6d9; }
   #tab-order .cart-title { font-size:17px; font-weight:700; color:#2d3436; margin-bottom:10px; }
   #tab-order .cart-empty { color:#999; font-size:14px; padding:12px 0; }
   #tab-order .cart-item { display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px solid #f0f0f0; font-size:14px; }
@@ -380,13 +397,81 @@
                  onerror="this.src='https://via.placeholder.com/52?text=%20'" />
             <span class="item-name">${item.name}</span>
           </div>
-          <span class="item-price">${item.price} บาท</span>
+          <div class="item-price-wrap">
+            <span class="item-price">${item.price} บาท</span>
+            <button class="edit-price-btn" title="แก้ไขราคา">✏️</button>
+          </div>
         `;
         row.addEventListener('click', () => addToCart(item));
+
+        // ปุ่มแก้ไขราคา: ต้องหยุดไม่ให้คลิกไปโดนแถว (ไม่งั้นจะเผลอเพิ่มลงตะกร้า)
+        const editBtn = row.querySelector('.edit-price-btn');
+        editBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          enablePriceEdit(row, item);
+        });
+
         block.appendChild(row);
       }
       menuContainer.appendChild(block);
     }
+  }
+
+  function enablePriceEdit(row, item) {
+    const wrap = row.querySelector('.item-price-wrap');
+    wrap.innerHTML = `
+      <div class="price-edit-form">
+        <input type="number" min="0" step="1" value="${item.price}" />
+        <button class="price-save-btn">บันทึก</button>
+        <button class="price-cancel-btn">ยกเลิก</button>
+      </div>
+    `;
+    const input = wrap.querySelector('input');
+    const saveBtn = wrap.querySelector('.price-save-btn');
+    const cancelBtn = wrap.querySelector('.price-cancel-btn');
+
+    // กันไม่ให้คลิกในกล่องแก้ไขไปโดนแถว (ป้องกันเพิ่มลงตะกร้าโดยไม่ตั้งใจ)
+    wrap.addEventListener('click', (e) => e.stopPropagation());
+    input.focus();
+    input.select();
+
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') saveBtn.click();
+      if (e.key === 'Escape') renderMenu(menu.filter(m => matchesSearch(m)));
+    });
+
+    saveBtn.addEventListener('click', async () => {
+      const newPrice = Number(input.value);
+      if (isNaN(newPrice) || newPrice < 0) {
+        showToast('กรุณาใส่ราคาที่ถูกต้อง');
+        return;
+      }
+      saveBtn.disabled = true;
+      try {
+        const res = await fetch(`/api/menu/${item.id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ price: newPrice }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'บันทึกราคาไม่สำเร็จ');
+        showToast(`แก้ไขราคา "${item.name}" เป็น ${newPrice} บาทแล้ว`);
+        await loadMenu(); // โหลดเมนูใหม่ - ลูกค้าที่สแกน QR จะเห็นราคาใหม่ทันทีเช่นกัน
+        if (searchBox.value.trim()) renderMenu(menu.filter(matchesSearch));
+      } catch (err) {
+        showToast('ผิดพลาด: ' + err.message);
+        saveBtn.disabled = false;
+      }
+    });
+
+    cancelBtn.addEventListener('click', () => {
+      renderMenu(menu.filter(matchesSearch));
+    });
+  }
+
+  function matchesSearch(m) {
+    const q = searchBox.value.trim().toLowerCase();
+    return !q || m.name.toLowerCase().includes(q);
   }
 
   function addToCart(item) {
@@ -460,8 +545,7 @@
   }
 
   searchBox.addEventListener('input', () => {
-    const q = searchBox.value.trim().toLowerCase();
-    renderMenu(menu.filter(m => m.name.toLowerCase().includes(q)));
+    renderMenu(menu.filter(matchesSearch));
   });
   submitBtn.addEventListener('click', submitOrder);
 

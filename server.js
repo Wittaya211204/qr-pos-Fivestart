@@ -32,6 +32,14 @@ db.exec(`
     qty INTEGER NOT NULL,
     FOREIGN KEY (order_id) REFERENCES orders(id)
   );
+
+  CREATE TABLE IF NOT EXISTS menu (
+    id INTEGER PRIMARY KEY,
+    name TEXT NOT NULL,
+    price REAL NOT NULL,
+    category TEXT NOT NULL,
+    image TEXT
+  );
 `);
 
 // ---------- Migration: เพิ่มคอลัมน์สำหรับบันทึกการชำระเงิน (รองรับ DB เก่าที่มีอยู่แล้ว) ----------
@@ -43,8 +51,8 @@ if (!orderColumns.includes('paid_at')) {
   db.exec(`ALTER TABLE orders ADD COLUMN paid_at TEXT`);
 }
 
-// ---------- ข้อมูลจำลอง (เก็บใน memory) ----------
-const menu = [
+// ---------- ข้อมูลเมนูตั้งต้น (ใช้เติมลง DB ครั้งแรกเท่านั้น ถ้าตาราง menu ว่างอยู่) ----------
+const defaultMenuSeed = [
   // ---------- เมนูไก่ย่าง (GRILLED MENU) ----------
   { id: 1, name: 'ไก่ย่างสูตรทรงเครื่อง (ครึ่งตัว)', price: 80, category: 'เมนูไก่ย่าง', image: '/images/grilled-herb-half.jpg' },
   { id: 2, name: 'ไก่ย่างสูตรทรงเครื่อง (เต็มตัว)', price: 155, category: 'เมนูไก่ย่าง', image: '/images/grilled-herb-full.jpg' },
@@ -102,11 +110,54 @@ const menu = [
   { id: 44, name: 'น้ำพริกปลาร้าบองแมงดา', price: 25, category: 'ซอส', image: '/images/3sauce-chili-paste.jpg' },
 ];
 
+// เติมข้อมูลเมนูลง DB แค่ครั้งแรก (ถ้าตาราง menu ยังว่างอยู่) — หลังจากนี้ราคาที่แก้ไขจะยึดจาก DB เสมอ
+const menuRowCount = db.prepare(`SELECT COUNT(*) AS c FROM menu`).get().c;
+if (menuRowCount === 0) {
+  const insertMenuStmt = db.prepare(
+    `INSERT INTO menu (id, name, price, category, image) VALUES (?, ?, ?, ?, ?)`
+  );
+  const seedMenu = db.transaction((items) => {
+    for (const it of items) insertMenuStmt.run(it.id, it.name, it.price, it.category, it.image);
+  });
+  seedMenu(defaultMenuSeed);
+}
+
 const TABLE_COUNT = 10;
+
+// ---------- helper: อ่านเมนูจาก DB (แหล่งข้อมูลเดียว ใช้ร่วมกันทั้งหน้าร้านและหน้าลูกค้า) ----------
+function getMenu() {
+  return db.prepare(`SELECT * FROM menu ORDER BY id ASC`).all();
+}
+function getMenuItem(id) {
+  return db.prepare(`SELECT * FROM menu WHERE id = ?`).get(id);
+}
 
 // ---------- API: เมนู ----------
 app.get('/api/menu', (req, res) => {
-  res.json(menu);
+  res.json(getMenu());
+});
+
+// ---------- API: แก้ไขเมนู (เช่น แก้ราคา) — มีผลทันทีทั้งฝั่งพนักงานและฝั่งลูกค้าที่สแกน QR ----------
+app.patch('/api/menu/:id', (req, res) => {
+  const id = Number(req.params.id);
+  const existing = getMenuItem(id);
+  if (!existing) return res.status(404).json({ error: 'ไม่พบเมนูนี้' });
+
+  const { price, name } = req.body;
+
+  if (price !== undefined) {
+    const p = Number(price);
+    if (isNaN(p) || p < 0) {
+      return res.status(400).json({ error: 'ราคาต้องเป็นตัวเลขที่มากกว่าหรือเท่ากับ 0' });
+    }
+    db.prepare(`UPDATE menu SET price = ? WHERE id = ?`).run(p, id);
+  }
+
+  if (name !== undefined && String(name).trim() !== '') {
+    db.prepare(`UPDATE menu SET name = ? WHERE id = ?`).run(String(name).trim(), id);
+  }
+
+  res.json(getMenuItem(id));
 });
 
 // ---------- API: สร้างออเดอร์ ----------
@@ -127,12 +178,12 @@ app.post('/api/orders', (req, res) => {
   let enrichedItems;
   try {
     enrichedItems = items.map((it) => {
-      const menuItem = menu.find((m) => m.id === it.menuId);
+      const menuItem = getMenuItem(it.menuId);
       if (!menuItem) throw new Error('ไม่พบเมนูนี้');
       return {
         menuId: menuItem.id,
         name: menuItem.name,
-        price: menuItem.price,
+        price: menuItem.price, // ใช้ราคาล่าสุดจาก DB เสมอ ป้องกันราคาเพี้ยนจากฝั่ง client
         qty: it.qty,
       };
     });
