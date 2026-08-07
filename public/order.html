@@ -91,11 +91,40 @@
   }
 
   /* ==================================================================
-     รายการอาหารที่ลูกค้าสั่งไปแล้ว (เฉพาะโต๊ะนี้)
+     รายการอาหารที่ลูกค้าสั่งไปแล้ว (เฉพาะที่ "เครื่องนี้" เป็นคนสั่งเอง)
+     ใช้ localStorage เก็บเลขออเดอร์ของตัวเอง เพื่อไม่ให้ปนกับออเดอร์ของ
+     คนอื่นที่โต๊ะเดียวกัน หรือออเดอร์ที่พนักงานกดสั่งแทนให้
   ================================================================== */
   const STATUS_LABELS = { pending: 'รอทำ', cooking: 'กำลังทำ', served: 'เสิร์ฟแล้ว' };
+  const MY_ORDERS_KEY = `qrpos_my_order_ids_table_${table}`;
+
+  function getMyOrderIds() {
+    try {
+      const raw = localStorage.getItem(MY_ORDERS_KEY);
+      const ids = raw ? JSON.parse(raw) : [];
+      return Array.isArray(ids) ? ids : [];
+    } catch (err) {
+      return [];
+    }
+  }
+
+  function addMyOrderId(id) {
+    try {
+      const ids = getMyOrderIds();
+      ids.push(id);
+      localStorage.setItem(MY_ORDERS_KEY, JSON.stringify(ids));
+    } catch (err) {
+      // ถ้า localStorage ใช้ไม่ได้ (เช่น โหมดส่วนตัว) ก็แค่จะไม่เห็นประวัติเก่า ไม่กระทบการสั่งอาหาร
+    }
+  }
 
   async function loadMyOrders() {
+    const myIds = getMyOrderIds();
+    if (myIds.length === 0) {
+      document.getElementById('myOrdersSection').style.display = 'none';
+      return;
+    }
+
     let orders;
     try {
       orders = await fetch('/api/orders').then(r => r.json());
@@ -104,7 +133,7 @@
     }
 
     const myOrders = orders
-      .filter(o => String(o.table) === String(table))
+      .filter(o => myIds.includes(o.id))
       .sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
 
     const section = document.getElementById('myOrdersSection');
@@ -222,6 +251,7 @@
 
         if (res.ok) {
           toast('สั่งอาหารสำเร็จ! รอครัวเตรียมอาหารนะครับ');
+          addMyOrderId(data.id); // จำไว้ว่าออเดอร์นี้เป็นของเครื่องนี้ ไม่ปนกับคนอื่นที่โต๊ะเดียวกัน
           cart = {};
           menu.forEach(m => {
             const qEl = document.getElementById(`qty-${m.id}`);
