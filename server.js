@@ -51,6 +51,12 @@ if (!orderColumns.includes('paid_at')) {
   db.exec(`ALTER TABLE orders ADD COLUMN paid_at TEXT`);
 }
 
+// ---------- Migration: เพิ่มคอลัมน์ "สินค้าหมด" ในตารางเมนู (รองรับ DB เก่าที่มีอยู่แล้ว) ----------
+const menuColumns = db.prepare(`PRAGMA table_info(menu)`).all().map((c) => c.name);
+if (!menuColumns.includes('in_stock')) {
+  db.exec(`ALTER TABLE menu ADD COLUMN in_stock INTEGER NOT NULL DEFAULT 1`);
+}
+
 // ---------- ข้อมูลเมนูตั้งต้น (ใช้เติมลง DB ครั้งแรกเท่านั้น ถ้าตาราง menu ว่างอยู่) ----------
 const defaultMenuSeed = [
   // ---------- เมนูไก่ย่าง (GRILLED MENU) ----------
@@ -125,11 +131,16 @@ if (menuRowCount === 0) {
 const TABLE_COUNT = 10;
 
 // ---------- helper: อ่านเมนูจาก DB (แหล่งข้อมูลเดียว ใช้ร่วมกันทั้งหน้าร้านและหน้าลูกค้า) ----------
+// แปลง in_stock (0/1) ให้เป็น inStock (boolean) เพื่อให้ฝั่ง client ใช้งานง่าย
+function mapMenuRow(row) {
+  if (!row) return row;
+  return { ...row, inStock: row.in_stock !== 0 };
+}
 function getMenu() {
-  return db.prepare(`SELECT * FROM menu ORDER BY id ASC`).all();
+  return db.prepare(`SELECT * FROM menu ORDER BY id ASC`).all().map(mapMenuRow);
 }
 function getMenuItem(id) {
-  return db.prepare(`SELECT * FROM menu WHERE id = ?`).get(id);
+  return mapMenuRow(db.prepare(`SELECT * FROM menu WHERE id = ?`).get(id));
 }
 
 // ---------- API: เมนู ----------
@@ -137,13 +148,13 @@ app.get('/api/menu', (req, res) => {
   res.json(getMenu());
 });
 
-// ---------- API: แก้ไขเมนู (เช่น แก้ราคา) — มีผลทันทีทั้งฝั่งพนักงานและฝั่งลูกค้าที่สแกน QR ----------
+// ---------- API: แก้ไขเมนู (เช่น แก้ราคา, แจ้งสินค้าหมด/มีสินค้า) — มีผลทันทีทั้งฝั่งพนักงานและฝั่งลูกค้าที่สแกน QR ----------
 app.patch('/api/menu/:id', (req, res) => {
   const id = Number(req.params.id);
   const existing = getMenuItem(id);
   if (!existing) return res.status(404).json({ error: 'ไม่พบเมนูนี้' });
 
-  const { price, name } = req.body;
+  const { price, name, inStock } = req.body;
 
   if (price !== undefined) {
     const p = Number(price);
@@ -155,6 +166,13 @@ app.patch('/api/menu/:id', (req, res) => {
 
   if (name !== undefined && String(name).trim() !== '') {
     db.prepare(`UPDATE menu SET name = ? WHERE id = ?`).run(String(name).trim(), id);
+  }
+
+  if (inStock !== undefined) {
+    if (typeof inStock !== 'boolean') {
+      return res.status(400).json({ error: 'inStock ต้องเป็นค่า true หรือ false' });
+    }
+    db.prepare(`UPDATE menu SET in_stock = ? WHERE id = ?`).run(inStock ? 1 : 0, id);
   }
 
   res.json(getMenuItem(id));
@@ -180,6 +198,7 @@ app.post('/api/orders', (req, res) => {
     enrichedItems = items.map((it) => {
       const menuItem = getMenuItem(it.menuId);
       if (!menuItem) throw new Error('ไม่พบเมนูนี้');
+      if (!menuItem.inStock) throw new Error(`"${menuItem.name}" สินค้าหมด กรุณาเลือกรายการอื่น`);
       return {
         menuId: menuItem.id,
         name: menuItem.name,

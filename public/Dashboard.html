@@ -67,6 +67,8 @@
     box-shadow:0 1px 4px rgba(0,0,0,0.06); cursor:pointer; transition:background 0.15s;
     gap:12px;
   }
+  #tab-order .item-row.out-of-stock { opacity:0.55; cursor:not-allowed; background:#f4f6f8; }
+  #tab-order .item-row.out-of-stock:hover { background:#f4f6f8; }
   #tab-order .item-info { display:flex; align-items:center; gap:12px; flex:1; min-width:0; }
   #tab-order .item-thumb {
     width:52px; height:52px; border-radius:8px; object-fit:cover; flex-shrink:0;
@@ -74,13 +76,21 @@
   }
   #tab-order .item-row:hover { background:#eef7ff; }
   #tab-order .item-name { font-size:14px; color:#2d3436; }
+  #tab-order .item-name-wrap { display:flex; flex-direction:column; gap:3px; min-width:0; }
+  #tab-order .out-of-stock-badge {
+    font-size:11px; font-weight:700; color:#d63031; background:#fdecea;
+    padding:2px 8px; border-radius:999px; width:fit-content;
+  }
   #tab-order .item-price { font-size:13px; color:#0984e3; font-weight:600; white-space:nowrap; }
   #tab-order .item-price-wrap { display:flex; align-items:center; gap:6px; margin-left:8px; flex-shrink:0; }
-  #tab-order .edit-price-btn {
+  #tab-order .edit-price-btn, #tab-order .stock-btn {
     background:none; border:none; cursor:pointer; font-size:14px; color:#b2bec3;
     padding:2px 4px; border-radius:4px; line-height:1;
   }
   #tab-order .edit-price-btn:hover { color:#0984e3; background:#eef7ff; }
+  #tab-order .stock-btn:hover { color:#d63031; background:#fdecea; }
+  #tab-order .stock-btn.is-out { color:#00b894; }
+  #tab-order .stock-btn.is-out:hover { color:#00b894; background:#e9fbf5; }
   #tab-order .price-edit-form { display:flex; align-items:center; gap:4px; }
   #tab-order .price-edit-form input {
     width:70px; padding:5px 6px; border:1px solid #0984e3; border-radius:5px; font-size:13px;
@@ -384,6 +394,10 @@
     renderMenu(menu);
   }
 
+  function isOutOfStock(item) {
+    return item.inStock === false;
+  }
+
   function renderMenu(items) {
     const categories = {};
     for (const it of items) {
@@ -396,26 +410,60 @@
       block.className = 'category-block';
       block.innerHTML = `<div class="category-title">${cat}</div>`;
       for (const item of categories[cat]) {
+        const outOfStock = isOutOfStock(item);
         const row = document.createElement('div');
-        row.className = 'item-row';
+        row.className = 'item-row' + (outOfStock ? ' out-of-stock' : '');
         row.innerHTML = `
           <div class="item-info">
             <img class="item-thumb" src="${item.image || ''}" alt="${item.name}"
                  onerror="this.src='https://via.placeholder.com/52?text=%20'" />
-            <span class="item-name">${item.name}</span>
+            <div class="item-name-wrap">
+              <span class="item-name">${item.name}</span>
+              ${outOfStock ? '<span class="out-of-stock-badge">สินค้าหมด</span>' : ''}
+            </div>
           </div>
           <div class="item-price-wrap">
             <span class="item-price">${item.price} บาท</span>
             <button class="edit-price-btn" title="แก้ไขราคา">✏️</button>
+            <button class="stock-btn${outOfStock ? ' is-out' : ''}" title="${outOfStock ? 'ทำให้กลับมามีสินค้า' : 'แจ้งสินค้าหมด'}">${outOfStock ? '✅' : '🚫'}</button>
           </div>
         `;
-        row.addEventListener('click', () => addToCart(item));
+        row.addEventListener('click', () => {
+          if (isOutOfStock(item)) {
+            showToast(`"${item.name}" สินค้าหมด`);
+            return;
+          }
+          addToCart(item);
+        });
 
         // ปุ่มแก้ไขราคา: ต้องหยุดไม่ให้คลิกไปโดนแถว (ไม่งั้นจะเผลอเพิ่มลงตะกร้า)
         const editBtn = row.querySelector('.edit-price-btn');
         editBtn.addEventListener('click', (e) => {
           e.stopPropagation();
           enablePriceEdit(row, item);
+        });
+
+        // ปุ่มแจ้งสินค้าหมด / กลับมามีสินค้า
+        const stockBtn = row.querySelector('.stock-btn');
+        stockBtn.addEventListener('click', async (e) => {
+          e.stopPropagation();
+          const newInStock = outOfStock ? true : false;
+          stockBtn.disabled = true;
+          try {
+            const res = await fetch(`/api/menu/${item.id}`, {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ inStock: newInStock }),
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || 'บันทึกไม่สำเร็จ');
+            showToast(newInStock ? `"${item.name}" กลับมามีสินค้าแล้ว` : `แจ้ง "${item.name}" สินค้าหมดแล้ว`);
+            await loadMenu(); // โหลดเมนูใหม่ - ลูกค้าที่สแกน QR จะเห็นสถานะสินค้าหมดทันทีเช่นกัน
+            if (searchBox.value.trim()) renderMenu(menu.filter(matchesSearch));
+          } catch (err) {
+            showToast('ผิดพลาด: ' + err.message);
+            stockBtn.disabled = false;
+          }
         });
 
         block.appendChild(row);
@@ -482,6 +530,10 @@
   }
 
   function addToCart(item) {
+    if (isOutOfStock(item)) {
+      showToast(`"${item.name}" สินค้าหมด`);
+      return;
+    }
     if (!cart[item.id]) cart[item.id] = { item, qty: 0 };
     cart[item.id].qty += 1;
     renderCart();
@@ -545,6 +597,8 @@
       loadOrders(); // อัปเดตหน้าครัวทันทีหลังสั่ง
     } catch (err) {
       showToast('ผิดพลาด: ' + err.message);
+      await loadMenu(); // เผื่อผิดพลาดเพราะสินค้าหมดพอดี ให้รีเฟรชสถานะเมนูใหม่
+      if (searchBox.value.trim()) renderMenu(menu.filter(matchesSearch));
     } finally {
       submitBtn.textContent = 'ยืนยันสั่งอาหาร';
       submitBtn.disabled = Object.keys(cart).length === 0;
